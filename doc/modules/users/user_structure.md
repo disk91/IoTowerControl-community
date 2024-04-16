@@ -41,7 +41,6 @@ The user data structure is defined as follows:
     "push": "boolean"             // user push alert preference 
   },
   
-  // Profile information
   "profile": {
         "gender": "string",           // user gender to be used
         "firstname": "string",        // user first name [encrypted]
@@ -60,7 +59,7 @@ The user data structure is defined as follows:
         "gender": "string",           // user gender to be used
         "firstname": "string",        // user first name [encrypted]
         "lastname": "string",         // user last name [encrypted]
-        "companyName": "string",     // user company name [encrypted]
+        "companyName": "string",      // user company name [encrypted]
         "phone": "string",            // user phone number [encrypted]
         "address": "string",          // user address [encrypted]
         "city": "string",             // user city [encrypted]
