@@ -88,7 +88,7 @@ session token to avoid verifications on every call. As a consequence, the role r
 - `ROLE_USER_ADMIN`: this role is the user admin role, it has the right to manage users
 - `ROLE_GROUP_ADMIN`: this role manage the group creation, configuration and association of user & devices to groups
 - `ROLE_GROUP_LADMIN`: this role allows a user to create and configure an owned group and self assign to it
-- `ROLE_DEVICE_ADMLIN`: this role allows to register devices
+- `ROLE_DEVICE_ADMIN`: this role allows to register devices
 - `ROLE_DEVICE_READ`: this role gives access to owned device data.
 - `ROLE_DEVICE_WRITE`: this role gives access to device description metadata modifications.
 - `ROLE_DEVICE_CONFIG`: this role allows to modify the device technical configuration
@@ -137,5 +137,24 @@ JWT signature depends on
 
 ### Password change
 On password change, the data encryption need to be recreated as the `userSecret` will be different.
+
+### traceability
+Event on user service are logged into an audit table. It includes
+- login event
+- logout events
+- password change
+- email sent (not content, just event)
+- authorization addition and removal
+- group association and removal
+- profile modification date
+- rekeying event
+- dekeying event
+- condition validation history
+- communication message seen
+
+The event table is stored in the database and can only be accessible with a 
+technical access in a first time. In the future it can be available with a UI.
+A purge system is in place to remove old events, the retention period is defined 
+by the `user.audit.retention.days` parameter.
 
 ### API
