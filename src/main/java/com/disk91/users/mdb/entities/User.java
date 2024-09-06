@@ -34,7 +34,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.ArrayList;
 
-@Document(collection = "users")
+@Document(collection = "users_users")
 @CompoundIndexes({
         @CompoundIndex(name = "login", def = "{'login': 'hashed'}", unique = true),
 })

@@ -1,13 +1,55 @@
 package com.disk91.iot;
 
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.ExitCodeGenerator;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 
+@EnableScheduling
+//@EnableWebMvc
+@Configuration
+@EnableAsync
 @SpringBootApplication
-public class IotApplication {
+public class IotApplication implements CommandLineRunner, ExitCodeGenerator {
 
-	public static void main(String[] args) {
-		SpringApplication.run(IotApplication.class, args);
-	}
+    public static boolean requestingExitForStartupFailure = false;
+
+    public static ApplicationContext context;
+
+    public static void main(String[] args) {
+        context = SpringApplication.run(IotApplication.class, args);
+        if (IotApplication.requestingExitForStartupFailure) {
+            exit();
+        }
+    }
+
+
+    @Override
+    public void run(String... args) throws Exception {
+        long pid = ProcessHandle.current().pid();
+        System.out.println("-------------- GO ("+pid+")--------------");
+    }
+
+    public static void exit() {
+
+        int exitCode = SpringApplication.exit(context, new ExitCodeGenerator() {
+            @Override
+            public int getExitCode() {
+                return 0;
+            }
+        });
+        // Bug in springboot, calling exit is create a deadlock
+        //System.exit(exitCode);
+        System.out.println("------------- GONE --------------");
+    }
+
+    public int getExitCode() {
+        return 0;
+    }
 
 }
