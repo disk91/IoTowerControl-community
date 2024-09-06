@@ -22,5 +22,5 @@ metadata, enabling the solution to be adaptable.
 
 The platform is designed to be modular, with each module being a package. Each module has its own but.
 
-![Overall Architecture diagram](../assets/IotTowerControl_architecture.png "Overall Architecture Diagram")
+![Overall Architecture diagram](../assets/IoTowerControl_architecture.png "Overall Architecture Diagram")
 
