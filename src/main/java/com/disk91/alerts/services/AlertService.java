@@ -381,7 +381,7 @@ public class AlertService {
             auditIntegration.auditLog(
                     ModuleCatalog.Modules.ALERTS,
                     ActionCatalog.getActionName(ActionCatalog.Actions.AUDIT_ALERT_REPORT),
-                    alert.getAlertDefRef(),
+                    "dev_"+alert.getDeviceId(),
                     "Silent alert '{0}' type {1} for tenant {2}: {3}",
                     new String[]{alert.getAlertId(), alert.getAlertTemplateId(), String.join(", ", alert.getTargetedGroups()), renderedMessage}
             );
@@ -807,7 +807,7 @@ public class AlertService {
         auditIntegration.auditLog(
                 ModuleCatalog.Modules.ALERTS,
                 ActionCatalog.getActionName(ActionCatalog.Actions.AUDIT_ALERT_CREATED),
-                alertDefRef,
+                "dev_"+deviceId,
                 "Alert '{0}' type {1} created for tenant {2}",
                 new String[]{alertId, alertTemplateId, String.join(", ", targetedGroups)}
         );
@@ -878,7 +878,7 @@ public class AlertService {
         auditIntegration.auditLog(
                 ModuleCatalog.Modules.ALERTS,
                 ActionCatalog.getActionName(ActionCatalog.Actions.AUDIT_ALERT_ENDED),
-                alert.getAlertDefRef(),
+                "dev_"+alert.getDeviceId(),
                 "Alert '{0}' type {1} ended for tenant {2}",
                 new String[]{alertId, alert.getAlertTemplateId(), String.join(", ", alert.getTargetedGroups())}
         );
