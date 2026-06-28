@@ -133,7 +133,6 @@ public class Alert {
         a.setPublicAccessId(publicAccessId);
         a.setError("");
         a.setFires(0);
-        a.setRequestMs(0);
         return a;
     }
 

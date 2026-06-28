@@ -343,7 +343,7 @@ public class AlertService {
             log.error("[alerts] Template {} not found for alert {}, moving to ENDED",
                     alert.getAlertTemplateId(), alert.getAlertId());
             alert.setState(AlertState.ENDED);
-            alert.setRequestMs(Now.NowUtcMs());
+            alert.setExpirationMs(Now.NowUtcMs());
             alert.setError("alerts-template-not-found");
             alertRepository.save(alert);
             return;
@@ -392,7 +392,7 @@ public class AlertService {
             // - Select the user with ROLE_DEVICE_ALERTING (global or ACL) in groups where alertGroup is true
             if (alert.getTargetedGroups() == null) {
                 alert.setState(AlertState.ENDED);
-                alert.setRequestMs(Now.NowUtcMs());
+                alert.setExpirationMs(Now.NowUtcMs());
                 alert.setError("alerts-target-not-found");
                 alertRepository.save(alert);
                 return;
@@ -596,7 +596,7 @@ public class AlertService {
                 AlertBehavior behavior = template.getBehavior();
                 switch (behavior) {
                     case SILENT, FIRE_FORGET -> {
-                        alert.setRequestMs(Now.NowUtcMs());
+                        alert.setExpirationMs(Now.NowUtcMs());
                         alert.setState(AlertState.ENDED);
                     }
                     case FIRE_TO_END, FIRE_UNTIL -> {
@@ -607,7 +607,7 @@ public class AlertService {
                     }
                     default -> {
                         log.warn("[alerts] Unknown behavior {} for alert {}, moving to ENDED", behavior, alert.getAlertId());
-                        alert.setRequestMs(Now.NowUtcMs());
+                        alert.setExpirationMs(Now.NowUtcMs());
                         alert.setState(AlertState.ENDED);
                     }
                 }
@@ -858,7 +858,7 @@ public class AlertService {
             if (template.getBehavior() != AlertBehavior.FIRE_TO_END) {
                 // we can manually cancel but it's not the objective
                 alert.setState(AlertState.ENDED);
-                alert.setRequestMs(Now.NowUtcMs());
+                alert.setExpirationMs(Now.NowUtcMs());
                 alertRepository.save(alert);
                 return;
             }
@@ -866,7 +866,7 @@ public class AlertService {
             log.error("[alerts] Template {} not found for alert {}, moving to ENDED 1",
                     alert.getAlertTemplateId(), alert.getAlertId());
             alert.setState(AlertState.ENDED);
-            alert.setRequestMs(Now.NowUtcMs());
+            alert.setExpirationMs(Now.NowUtcMs());
             alert.setError("alerts-template-not-found");
             alertRepository.save(alert);
             return;
@@ -960,7 +960,6 @@ public class AlertService {
         for (Alert alert : expired) {
             log.info("[alerts] Alert {} expired, moving to ENDED", alert.getAlertId());
             alert.setState(AlertState.ENDED);
-            alert.setRequestMs(Now.NowUtcMs());
             alertRepository.save(alert);
         }
 
