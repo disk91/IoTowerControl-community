@@ -201,7 +201,7 @@ public class User implements CloneableObject<User> {
         if ( this.getCustomFields() == null) throw new ITNotFoundException();
         for ( CustomField cf : this.getCustomFields() ) {
             if ( cf.getName().compareTo(name) == 0 ) {
-                if ( name.startsWith("clear_") || name.startsWith("cbasic_") ) {
+                if ( isEncryptedCustomField(name) ) {
                     return cf.getValue();
                 } else {
                     return EncryptionHelper.decrypt(cf.getValue(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
@@ -236,7 +236,7 @@ public class User implements CloneableObject<User> {
             for (CustomField cf : this.getCustomFields()) {
                 if (cf.getName().compareTo(name) == 0) {
                     // found, update it or remove it
-                    if ( name.startsWith("clear_") || name.startsWith("cbasic_") ) {
+                    if ( isEncryptedCustomField(name) ) {
                         cf.setValue(value);
                     } else {
                         cf.setValue(EncryptionHelper.encrypt(value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
@@ -247,7 +247,7 @@ public class User implements CloneableObject<User> {
             // not found, add it
             CustomField cf = new CustomField();
             cf.setName(name);
-            if ( name.startsWith("clear_") || name.startsWith("cbasic_") ) {
+            if ( isEncryptedCustomField(name) ) {
                 cf.setValue(value);
             } else {
                 cf.setValue(EncryptionHelper.encrypt(value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
@@ -277,7 +277,7 @@ public class User implements CloneableObject<User> {
         if ( this.profile == null || this.profile.getCustomFields() == null) throw new ITNotFoundException();
         for ( CustomField cf : this.profile.getCustomFields() ) {
             if ( cf.getName().compareTo(name) == 0 ) {
-                if ( name.startsWith("clear_") ) {
+                if ( isEncryptedCustomField(name) ) {
                     return cf.getValue();
                 } else {
                     return EncryptionHelper.decrypt(cf.getValue(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
@@ -313,7 +313,7 @@ public class User implements CloneableObject<User> {
             for (CustomField cf : this.profile.getCustomFields()) {
                 if (cf.getName().compareTo(name) == 0) {
                     // found, update it or remove it
-                    if ( name.startsWith("clear_") ) {
+                    if ( isEncryptedCustomField(name) ) {
                         cf.setValue(value);
                     } else {
                         cf.setValue(EncryptionHelper.encrypt(value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
@@ -324,7 +324,7 @@ public class User implements CloneableObject<User> {
             // not found, add it
             CustomField cf = new CustomField();
             cf.setName(name);
-            if ( name.startsWith("clear_") ) {
+            if ( isEncryptedCustomField(name) ) {
                 cf.setValue(value);
             } else {
                 cf.setValue(EncryptionHelper.encrypt(value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
