@@ -200,7 +200,13 @@ public class User implements CloneableObject<User> {
     public String getCustomFieldByName(String name) throws ITNotFoundException, ITParseException {
         if ( this.getCustomFields() == null) throw new ITNotFoundException();
         for ( CustomField cf : this.getCustomFields() ) {
-            if ( cf.getName().compareTo(name) == 0 ) return EncryptionHelper.decrypt(cf.getValue(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
+            if ( cf.getName().compareTo(name) == 0 ) {
+                if ( name.startsWith("clear_") || name.startsWith("cbasic_") ) {
+                    return cf.getValue();
+                } else {
+                    return EncryptionHelper.decrypt(cf.getValue(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
+                }
+            }
         }
         throw new ITNotFoundException();
     }
@@ -230,14 +236,22 @@ public class User implements CloneableObject<User> {
             for (CustomField cf : this.getCustomFields()) {
                 if (cf.getName().compareTo(name) == 0) {
                     // found, update it or remove it
-                    cf.setValue(EncryptionHelper.encrypt(value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
+                    if ( name.startsWith("clear_") || name.startsWith("cbasic_") ) {
+                        cf.setValue(value);
+                    } else {
+                        cf.setValue(EncryptionHelper.encrypt(value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
+                    }
                     return;
                 }
             }
             // not found, add it
             CustomField cf = new CustomField();
             cf.setName(name);
-            cf.setValue(EncryptionHelper.encrypt(value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
+            if ( name.startsWith("clear_") || name.startsWith("cbasic_") ) {
+                cf.setValue(value);
+            } else {
+                cf.setValue(EncryptionHelper.encrypt(value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
+            }
             this.getCustomFields().add(cf);
         }
     }
@@ -262,7 +276,13 @@ public class User implements CloneableObject<User> {
     public String getProfileCustomFieldByName(String name) throws ITNotFoundException, ITParseException {
         if ( this.profile == null || this.profile.getCustomFields() == null) throw new ITNotFoundException();
         for ( CustomField cf : this.profile.getCustomFields() ) {
-            if ( cf.getName().compareTo(name) == 0 ) return EncryptionHelper.decrypt(cf.getValue(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
+            if ( cf.getName().compareTo(name) == 0 ) {
+                if ( name.startsWith("clear_") ) {
+                    return cf.getValue();
+                } else {
+                    return EncryptionHelper.decrypt(cf.getValue(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
+                }
+            }
         }
         throw new ITNotFoundException();
     }
@@ -293,14 +313,22 @@ public class User implements CloneableObject<User> {
             for (CustomField cf : this.profile.getCustomFields()) {
                 if (cf.getName().compareTo(name) == 0) {
                     // found, update it or remove it
-                    cf.setValue(EncryptionHelper.encrypt(value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
+                    if ( name.startsWith("clear_") ) {
+                        cf.setValue(value);
+                    } else {
+                        cf.setValue(EncryptionHelper.encrypt(value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
+                    }
                     return;
                 }
             }
             // not found, add it
             CustomField cf = new CustomField();
             cf.setName(name);
-            cf.setValue(EncryptionHelper.encrypt(value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
+            if ( name.startsWith("clear_") ) {
+                cf.setValue(value);
+            } else {
+                cf.setValue(EncryptionHelper.encrypt(value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
+            }
             this.profile.getCustomFields().add(cf);
         }
     }
