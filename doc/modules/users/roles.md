@@ -67,3 +67,14 @@ enriching the associated knowledge base. Contact requests are public. NCE editin
 ### `ROLE_TICKET_USER`
 This role grants access to ticket creation APIs. It should generally be a default role, unless you prefer not to expose 
 this functionality to users. NCE editing only.
+
+### `ROLE_CONTACT_ADMIN`
+This role allows users to create contacts that can be made public by sharing them with groups. Without this role, a 
+user can only create contacts that belong to them personally.
+
+### `ROLE_CONTACT_USER`
+The Contact User role allows users to view public contacts. 
+
+### `ROLE_CONTACT_WRITE`
+This role allows users to create personal contacts that are visible only to them. The Read role alone can be insufficient.
+In that case, users may be able to view their own contacts, but not public contacts. 

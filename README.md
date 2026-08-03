@@ -22,7 +22,12 @@ $ make start
 
 ## Non Community Edition
 
-...
+The non-Community version will provide additional features, as described below.
+- `Support ticket management` with an AI integration that makes user interaction easier and enables automated responses. 
+   This also includes the management of public contact forms, as well as both public and private FAQs.
+- `Contact` It supports the management of external contacts, making it possible to extend alerting and automation 
+   scenarios to users who are not registered on the platform.
+
 
 ### Additional Features
  

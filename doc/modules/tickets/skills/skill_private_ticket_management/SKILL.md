@@ -36,6 +36,7 @@ The list view shows all tickets owned by the authenticated user:
   - `adminPending = true`: the user has replied and the support team is expected to respond.
 - By default, only open tickets are listed. An option (toggle or query param) can display closed tickets as well.
 - When no ticket is found, an empty state message is displayed.
+- The ticket list must list all the tickets returned by the API.
 
 ### Ticket detail
 The detail view shows the full content of one ticket:

@@ -82,6 +82,9 @@ public class UsersRolesCache {
         "{'version':2, 'platform':true, 'name':'ROLE_AUDIT_RD_CLEAR','description':'role-audit-read-clear-desc', 'enDescription':'Ability to read audit log in clear text', 'creationBy':'system','creationMs':0, 'assignable':true}",
         "{'version':2, 'platform':true, 'name':'ROLE_ALERTS_ADMIN','description':'role-alerts-admin-desc', 'enDescription':'Admin can create global alert template', 'creationBy':'system','creationMs':0, 'assignable':true}",
         "{'version':2, 'platform':true, 'name':'ROLE_ALERTS_TEMPLATE','description':'role-alerts-template-desc', 'enDescription':'User with this role can create local alert template', 'creationBy':'system','creationMs':0, 'assignable':true}",
+        "{'version':2, 'platform':true, 'name':'ROLE_CONTACT_ADMIN','description':'role-contact-admin-desc', 'enDescription':'Admin can create public contact', 'creationBy':'system','creationMs':0, 'assignable':true}",
+        "{'version':2, 'platform':true, 'name':'ROLE_CONTACT_WRITE','description':'role-contact-write-desc', 'enDescription':'User with this role can create & access private contact', 'creationBy':'system','creationMs':0, 'assignable':true}",
+        "{'version':2, 'platform':true, 'name':'ROLE_CONTACT_USER','description':'role-contact-user-desc', 'enDescription':'User with this role can view public contacts', 'creationBy':'system','creationMs':0, 'assignable':true}",
     };
 
     // Standard roles strings
@@ -111,7 +114,10 @@ public class UsersRolesCache {
         ROLE_AUDIT_RD("ROLE_AUDIT_RD"),
         ROLE_AUDIT_RD_CLEAR("ROLE_AUDIT_RD_CLEAR"),
         ROLE_ALERTS_ADMIN("ROLE_ALERTS_ADMIN"),
-        ROLE_ALERTS_TEMPLATE("ROLE_ALERTS_TEMPLATE");
+        ROLE_ALERTS_TEMPLATE("ROLE_ALERTS_TEMPLATE"),
+        ROLE_CONTACT_ADMIN("ROLE_CONTACT_ADMIN"),
+        ROLE_CONTACT_WRITE("ROLE_CONTACT_WRITE"),
+        ROLE_CONTACT_USER("ROLE_CONTACT_USER");
 
         private String roleName;
         StandardRoles(String roleName) {

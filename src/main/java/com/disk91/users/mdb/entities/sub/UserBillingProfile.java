@@ -1,16 +1,11 @@
 package com.disk91.users.mdb.entities.sub;
 
-import com.disk91.common.tools.CloneableObject;
-import com.disk91.common.tools.CustomField;
-
-import java.util.ArrayList;
-
 public class UserBillingProfile extends UserProfile {
 
     // Name of the company
     private String companyName;
 
-    // 2 digits country code
+    // 2 digits country code (possible extension for more precision, if empty, use county)
     private String countryCode;
 
     // VAT number
