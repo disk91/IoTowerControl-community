@@ -21,12 +21,9 @@ differently if needed, with more precise elements and better-protected data.
 A new contact is created by a user. It can either be public, in which case it becomes part of a shared contact 
 directory, or private to that user.
 
-In most cases, only a contact administrator can make contacts public and therefore accessible to all users. 
-A contact exists independently, but the contacts owned by a user can be purged when that user is purged. Another 
-option would be to make them inaccessible once the user no longer has access to the associated data.
-
-This would be handled by checking the permissions of the associated user. Of course, this only makes sense 
-for public users. 
+In most cases, only a `ROLE_CONTACT_ADMIN` can create public contacts and therefore accessible to users with `ROLE_CONTACT_USER`. 
+A user with `ROLE_CONTACT_WRITE` can create private contacts, which are only accessible to them.
+A contact exists independently, but the contacts owned by a user can be purged when that user is purged. 
 
 A user can only edit contacts they have created, even if they can access the list of public contacts. 
 
@@ -43,7 +40,7 @@ A user can only edit contacts they have created, even if they can access the lis
   "email": "string",              // user email [Base64(encrypted)]
   "pushAddress": "string",        // Id for smartphone push (encrypted)
   "phoneNumber": "string",        // user phone number e164 format [Base64(encrypted)]
-  "groups" : [                    // group having access to this contact (when public, Read Only)
+  "groups" : [                    // group having access to this contact (when public, Read Only), private contains the user_LoginHash
     "strings"
   ],
   "salt": [ "numbers" ],          // encryption salt 
@@ -76,4 +73,6 @@ A user can only edit contacts they have created, even if they can access the lis
 
 }
 ```
+
+## User interface and API
 

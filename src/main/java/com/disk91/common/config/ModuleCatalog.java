@@ -30,6 +30,7 @@ public class ModuleCatalog {
         TICKETS,
         FILES,
         ALERTS,
+        CONTACTS,
         CUSTOM
     }
 
@@ -52,6 +53,8 @@ public class ModuleCatalog {
             return "files";
         } else if (service == ModuleCatalog.Modules.ALERTS) {
             return "alerts";
+        } else if (service == ModuleCatalog.Modules.CONTACTS) {
+            return "contacts";
         } else if (service == ModuleCatalog.Modules.CUSTOM) {
             return "custom";
         }
