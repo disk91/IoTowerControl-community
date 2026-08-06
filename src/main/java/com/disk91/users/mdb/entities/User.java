@@ -1164,7 +1164,7 @@ public class User implements CloneableObject<User> {
 
     /**
      * Returns the list of the groups the user have access, including the virtual group.
-     *  nd the ACL when scanAcl is true
+     * and the ACL when scanAcl is true
      * @param scanAcl - when true, the ACLs are also scanned for groups
      * @return
      */

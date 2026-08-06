@@ -211,13 +211,81 @@ All endpoints are under the base path `/contacts/1.0/` and require `ROLE_LOGIN_C
 
 ---
 
-### GET `/contacts/1.0/` — List owned contacts
+### GET `/contacts/1.0/{contactId}` — Get full contact details
 
 **Roles required:** `ROLE_CONTACT_ADMIN`, `ROLE_CONTACT_WRITE`, or `ROLE_CONTACT_USER`
 
-Returns all contacts for which the authenticated user is the owner. Personal data is decrypted and returned in full.
+**Path parameter:** `contactId` — the contact identifier returned at creation.
 
-**Response body** (array of `PrivContactAbstractResponseItf`):
+**Visibility rule:** the contact must belong to at least one group the requester can access
+(same rule as the list endpoint). Contacts not visible to the requester return 404.
+
+**Response body** (`PrivContactDetailResponseItf`):
+
+| Field | Type | Description |
+|---|---|---|
+| `contactId` | string | Contact identifier. |
+| `firstName` | string | Decrypted first name. |
+| `lastName` | string | Decrypted last name. |
+| `email` | string | Decrypted email address. |
+| `phoneNumber` | string | Decrypted phone number. |
+| `pushAddress` | string | Decrypted push address. |
+| `gender` | string | Decrypted gender (free text). |
+| `language` | string | Language preference (2x2 ISO code). |
+| `companyName` | string | Decrypted company name. |
+| `address` | string | Decrypted street address. |
+| `city` | string | Decrypted city. |
+| `zipCode` | string | Decrypted zip/postal code. |
+| `countryCode` | string | Decrypted ISO country code. |
+| `vatNumber` | string | Decrypted VAT number. |
+| `groups` | string[] | Groups the contact belongs to. |
+| `emailAlert` | boolean | Email alert preference. |
+| `smsAlert` | boolean | SMS alert preference. |
+| `pushAlert` | boolean | Push alert preference. |
+| `customFields` | object[] | All custom fields, fully decrypted (`{name, value}`). |
+| `creationDate` | long | Creation timestamp in ms since epoch. |
+| `modificationDate` | long | Last modification timestamp in ms since epoch. |
+| `editable` | boolean | `true` when the requester owns this contact **and** holds `ROLE_CONTACT_ADMIN` or `ROLE_CONTACT_WRITE`. |
+
+**Responses:**
+
+| Code | Description |
+|---|---|
+| 200 | Full contact detail. |
+| 403 | Insufficient rights. |
+| 404 | Contact not found or not visible to the requester. |
+
+---
+
+### GET `/contacts/1.0/` — List visible contacts (paginated)
+
+**Roles required:** `ROLE_CONTACT_ADMIN`, `ROLE_CONTACT_WRITE`, or `ROLE_CONTACT_USER`
+
+Returns a paginated list of contacts visible to the authenticated user, i.e. all contacts belonging
+to at least one group the user is a member of (including their virtual group and all sub-groups).
+Personal data is decrypted and returned in full. Results are sorted by modification date descending.
+
+**Visibility rule:** a contact is visible to a user when the contact's `groups` list intersects with
+the complete set of groups the user belongs to: direct group memberships, ACL-based memberships,
+the virtual group, and all sub-groups derived from each of the above.
+
+**Query parameters:**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `page` | int | `0` | 0-based page index. Clamped to `>= 0`. |
+| `size` | int | `25` | Number of results per page. Clamped to `[1, 100]`. |
+
+**Response body** (`PrivContactListResponseItf`):
+
+| Field | Type | Description |
+|---|---|---|
+| `total` | long | Total number of contacts visible to the user across all pages. |
+| `page` | int | Current page index (0-based). |
+| `size` | int | Effective page size used. |
+| `contacts` | object[] | Contacts on this page (see below). |
+
+Each element of `contacts` (`PrivContactAbstractResponseItf`):
 
 | Field | Type | Description |
 |---|---|---|
@@ -230,12 +298,13 @@ Returns all contacts for which the authenticated user is the owner. Personal dat
 | `groups` | string[] | Groups the contact belongs to. |
 | `creationDate` | long | Creation timestamp in ms since epoch. |
 | `modificationDate` | long | Last modification timestamp in ms since epoch. |
+| `editable` | boolean | `true` when the requester owns this contact **and** holds `ROLE_CONTACT_ADMIN` or `ROLE_CONTACT_WRITE`. Indicates the contact can be updated or deleted by this user. |
 
 **Responses:**
 
 | Code | Description |
 |---|---|
-| 200 | List of contacts. |
-| 204 | No contacts found for this user. |
+| 200 | Paginated list of contacts. |
+| 204 | No contacts visible for this user. |
 | 403 | Insufficient rights. |
 
