@@ -30,6 +30,8 @@ available for a user, the module must select another usable channel as a fallbac
 ## Core principles
 
 - Alerts are group-based, not user-based.
+- But a user virtual group is like a single user in general
+- Alerts also supports (in non community version) third party contacts distribution, by group or by individual contact
 - The module must remain independent from the source module that created the trigger.
 - The same logical alert can be emitted once, repeatedly, or kept active until a stop condition is met.
 - Alerts are persisted in the database so they can be queried, purged, and used to rebuild the operational history.
@@ -40,8 +42,8 @@ available for a user, the module must select another usable channel as a fallbac
 1. A source module detects a condition.
 2. The source module creates or updates an alert record with the group, message key, parameters, desired channels, and lifecycle information. Alert is stored in the database for async processes.
 3. A process in the alert module will handle pending alerts asynchronously.
-4. The alerts module resolves the target group members.
-5. For each user, the module selects the first compatible delivery channel.
+4. The alerts module resolves the target group members and contacts.
+5. For each target, the module selects the first compatible delivery channel.
 6. The message is rendered with the appropriate translation and the best matching parameters.
 7. The alert is delivered.
 8. The alert emission and its processing outcome are written to the audit trail.
@@ -79,6 +81,7 @@ match the target template to avoid losing critical information.
 {
   "id" : "string",                 // technical uniq identifier used inside the platform
   "targetedGroups" : ["string"],   // targeted Groups for this alert
+  "includesContact" : "boolean",   // if true, the alert is also sent to the contacts of the targeted groups
   "alertId" : "string",            // stable alert identifier, used to identify the same alert across multiple emissions, see bellow for more details
   "alertDefRef" : "string",        // reference to the alert definition, ex : dev_DEVICEID to refer the device, source of the alert, grp_GROUPID for group alerts
   "alertTemplateId" : "string",    // reference to the alert template, this is used to link the alert to the message key and parameters
