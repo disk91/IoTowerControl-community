@@ -21,6 +21,7 @@ package com.disk91.alerts.services;
 
 import com.disk91.alerts.config.ActionCatalog;
 import com.disk91.alerts.config.AlertsConfig;
+import com.disk91.alerts.interfaces.ContactTarget;
 import com.disk91.alerts.mdb.entities.Alert;
 import com.disk91.alerts.mdb.entities.AlertTemplate;
 import com.disk91.alerts.mdb.entities.sub.*;
@@ -108,6 +109,9 @@ public class AlertService {
 
     @Autowired
     protected AlertPopupService alertPopupService;
+
+    @Autowired
+    protected CrossAlertWrapperService  crossAlertWrapperService;
 
     // ================================================================================================================
     // WORKER INFRASTRUCTURE
@@ -263,7 +267,7 @@ public class AlertService {
      * Find the best Medium for a given User in regard of the template preference
      * Can return NULL when no match
      */
-    private AlertMedium getRightMedium(User user, AlertLocaleMessage alm, AlertTemplate template) {
+    private AlertMedium getRightMedium(ContactTarget target, AlertLocaleMessage alm, AlertTemplate template) {
 
         // find the best medium based on medium accepted by user and the medium preferred by template:
         //     Scan the template preferred in the given order and take the first accepted by the user.
@@ -271,7 +275,7 @@ public class AlertService {
         //     When selection comes to DEFAULT, for user we try PUSH, then SMS, then EMAIL based on what user accepts
         //     When no preferred, we can scan the available list in ale
 
-        UserAlertPreference upref = user.getAlertPreference() != null ? user.getAlertPreference() : UserAlertPreference.of();
+        UserAlertPreference upref = target.alertPreference() != null ? target.alertPreference() : UserAlertPreference.of();
         boolean templateHasDefault = template.getPreferred().isEmpty() || template.getPreferred().contains(AlertMedium.DEFAULT);
         AlertMedium selectedMedium = null;
 
@@ -326,6 +330,20 @@ public class AlertService {
         return messageVariant;
     }
 
+
+    @FunctionalInterface
+    private interface SafeStringSupplier {
+        String get() throws ITParseException;
+    }
+
+    private String safeString(SafeStringSupplier supplier) {
+        try {
+            return supplier.get();
+        } catch (ITParseException x) {
+            return "";
+        }
+    }
+
     /**
      * Process one alert dequeued by a worker, dispatching on its current state.
      * PENDING_QUEUE: fire open notification and transition to RUNNING or ENDED per template behavior.
@@ -373,7 +391,21 @@ public class AlertService {
                     messageVariant = bestLocale.getMediums().getFirst();
                 }
                 if (messageVariant != null) {
-                    renderedMessage = renderMessage(alert, template, messageVariant.getMessage(), platformGroup, null);
+                    ContactTarget t = new ContactTarget(
+                            null,
+                            platformGroup != null ? platformGroup.getName() : null,
+                            null,
+                            null,
+                            false,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null
+                    );
+                    renderedMessage = renderMessage(alert, template, messageVariant.getMessage(), t);
                 }
             }
             // @TODO - we only have an audit type REPORT when the alert is SILENT / is that what we want ?
@@ -398,27 +430,66 @@ public class AlertService {
                 return;
 
             }
-            HashMap<String, User> targets = new HashMap<>();
-            HashMap<String, Group> groups = new HashMap<>();
+            HashMap<String, ContactTarget> targets = new HashMap<>();
             for (String group : alert.getTargetedGroups()) {
                 log.debug("[alerts] targeted group {} found", group);
                 try {
-                    Group g = groupsServices.getGroupByShortId(group);
-                    if (g.isAlertGroup()) {
-                        // Find users in this group
-                        List<User> users = userCommon.getUsersByGroupWithRole(
-                                g.getShortId(),
-                                false,  // prefer to not go to sub to avoid spamming the group managers
-                                true,
-                                ROLE_DEVICE_ALERTING.getRoleName()
-                        );
-                        // Add users
-                        for (User user : users) {
-                            targets.put(user.getLogin(), user);
-                            groups.put(user.getLogin(), g);
+                    if ( group.startsWith("ctc_") ) {
+                        // specific situation (NCE) where we want to add specific contacts one by one
+                        // contact right not verified at this level, so it must be verified upstream
+                        if ( crossAlertWrapperService.isNceEnabled() ) {
+                            ContactTarget t = crossAlertWrapperService.getTargetFromContact(group);
+                            if ( t != null ) {
+                                targets.put(t.login(), t);
+                            } else {
+                                log.warn("[alerts] requested contact {} not found", group);
+                            }
                         }
                     } else {
-                        log.debug("[alerts] group skipped {} : not an alert group", group);
+
+                        Group g = groupsServices.getGroupByShortId(group);
+                        if (g.isAlertGroup()) {
+                            // Find users in this group
+                            List<User> users = userCommon.getUsersByGroupWithRole(
+                                    g.getShortId(),
+                                    false,  // prefer to not go to sub to avoid spamming the group managers
+                                    true,
+                                    ROLE_DEVICE_ALERTING.getRoleName()
+                            );
+                            // Add users
+                            for (User user : users) {
+                                user.setKeys(commonConfig.getEncryptionKey(), commonConfig.getApplicationKey());
+                                ContactTarget t = new ContactTarget(
+                                        user.getLogin(),
+                                        g.getName(),
+                                        user.getLanguage(),
+                                        user.getAlertPreference(),
+                                        user.isPersonalDataAccessible(),
+                                        safeString(user::getEncProfileFirstName),
+                                        safeString(user::getEncProfileLastName),
+                                        safeString(user::getEncProfileGender),
+                                        safeString(user::getEncProfileTimezone),
+                                        safeString(user::getEncEmail),
+                                        safeString(user::getEncProfilePhone),
+                                        safeString(user::getEncPushAddress)
+                                );
+
+                                user.cleanKeys();
+                                targets.put(user.getLogin(), t);
+                            }
+
+                            // Add contacts from group (Non Community Version)
+                            if ( alert.isIncludesContact() ) {
+                                List<ContactTarget> ts = crossAlertWrapperService.getTargetsFromGroup(group);
+                                if ( ts != null ) {
+                                    for ( ContactTarget t : ts) {
+                                        targets.put(t.login(), t);
+                                    }
+                                }
+                            }
+                        } else {
+                            log.debug("[alerts] group skipped {} : not an alert group", group);
+                        }
                     }
                 } catch (ITNotFoundException ignored) {
                     log.debug("[alerts] group {} not found", group);
@@ -433,34 +504,34 @@ public class AlertService {
                     : template.getOpen();
 
             // for each
-            for (User user : targets.values()) {
-                log.debug("[alerts] targeted user {}", user.getLogin());
+            for (ContactTarget target : targets.values()) {
+                log.debug("[alerts] targeted user {}", target.login());
 
                 // Get the locale to be used
                 AlertLocaleMessage bestLocale = this.getRightAlertLocaleMessage(
-                        user.getLanguage(),
+                        target.language(),
                         localeMessages
                 );
                 if (bestLocale == null) {
-                    log.warn("[alerts] No locale message for alert {} user {}, skipping", alert.getAlertId(), user.getLogin());
+                    log.warn("[alerts] No locale message for alert {} user {}, skipping", alert.getAlertId(), target.login());
                     continue;
-                } else log.debug("[alerts] Selected locale {} for user  {} found", bestLocale.getLocale(), user.getLogin());
+                } else log.debug("[alerts] Selected locale {} for user  {} found", bestLocale.getLocale(), target.login());
 
                 // Get the preferred Medium
-                AlertMedium selectedMedium = getRightMedium(user, bestLocale, template);
+                AlertMedium selectedMedium = getRightMedium(target, bestLocale, template);
 
                 if (selectedMedium == null) {
-                    log.warn("[alerts] No compatible medium for alert {} user {}, skipping", alert.getAlertId(), user.getLogin());
+                    log.warn("[alerts] No compatible medium for alert {} user {}, skipping", alert.getAlertId(), target.login());
                     continue;
-                } else log.debug("[alerts] Selected medium {} for user  {} found", selectedMedium, user.getLogin());
+                } else log.debug("[alerts] Selected medium {} for user  {} found", selectedMedium, target.login());
 
-                if (user.isPersonalDataAccessible()) {
+                if (target.isPersonalDataAccessible()) {
 
                     // Find the associated AlertMediumMessage
                     AlertMediumMessage messageVariant = getRightMedium(bestLocale, selectedMedium);
                     if (messageVariant == null) {
                         log.warn("[alerts] No message variant for medium {} alert {} user {}, skipping",
-                                selectedMedium, alert.getAlertId(), user.getLogin());
+                                selectedMedium, alert.getAlertId(), target.login());
                         continue;
                     }
 
@@ -469,8 +540,8 @@ public class AlertService {
                             alert,
                             template,
                             messageVariant.getMessage(),
-                            groups.get(user.getLogin()),
-                            user
+                            //groups.get(user.getLogin()),
+                            target
                     );
                     String renderedTitle = "";
                     if (messageVariant.getTitle() != null) {
@@ -478,78 +549,73 @@ public class AlertService {
                                 alert,
                                 template,
                                 messageVariant.getTitle(),
-                                groups.get(user.getLogin()),
-                                user
+                                target
                         );
                     }
 
-                    alert.upsertSent(user.getLogin(), selectedMedium, false, false, "alerts-alert-not-sent");
+                    alert.upsertSent(target.login(), selectedMedium, false, false, "alerts-alert-not-sent");
                     alertRepository.save(alert);
 
                     switch (selectedMedium) {
                         case EMAIL -> {
-                            user.setKeys(commonConfig.getEncryptionKey(), commonConfig.getApplicationKey());
-                            try {
+                            if (target.email() == null) {
+                                alert.upsertSent(target.login(), selectedMedium, false, false, "alerts-failed-no-email-address");
+                            } else {
                                 emailTools.send(
-                                        user.getEncEmail(),
+                                        target.email(),
                                         renderedMessage,
                                         renderedTitle,
                                         (alertsConfig.getAlertsMailSender().isEmpty()) ? commonConfig.getCommonMailSender() : alertsConfig.getAlertsMailSender()
                                 );
-                                alert.upsertSent(user.getLogin(), selectedMedium, true, false, "");
-                            } catch (ITParseException x) {
-                                alert.upsertSent(user.getLogin(), selectedMedium, false, false, "alerts-failed-to-get-email");
+                                alert.upsertSent(target.login(), selectedMedium, true, false, "");
                             }
-                            user.cleanKeys();
                             alertRepository.save(alert);
                         }
                         case SMS -> {
                             // @TODO
-                            alert.upsertSent(user.getLogin(), selectedMedium, false, false, "SMS Not yet implemented");
+                            alert.upsertSent(target.login(), selectedMedium, false, false, "SMS Not yet implemented");
                             alertRepository.save(alert);
                             log.warn("[alerts] SMS not yet implemented");
                         }
                         case PUSH -> {
-                            user.setKeys(commonConfig.getEncryptionKey(), commonConfig.getApplicationKey());
                             try {
-                                if (user.getPushAddress() == null) {
-                                    alert.upsertSent(user.getLogin(), selectedMedium, false, false, "alerts-failed-no-push-address");
+                                if (target.pushAddress() == null) {
+                                    alert.upsertSent(target.login(), selectedMedium, false, false, "alerts-failed-no-push-address");
                                 } else {
                                     firebaseTools.sendPush(
-                                            user.getEncPushAddress(),
+                                            target.pushAddress(),
                                             renderedTitle,
                                             renderedMessage
                                     );
-                                    alert.upsertSent(user.getLogin(), selectedMedium, true, false, "");
+                                    alert.upsertSent(target.login(), selectedMedium, true, false, "");
                                 }
                             } catch (ITParseException x) {
-                                alert.upsertSent(user.getLogin(), selectedMedium, false, false, "alerts-failed-send-push");
+                                alert.upsertSent(target.login(), selectedMedium, false, false, "alerts-failed-send-push");
                             }
-                            user.cleanKeys();
                             alertRepository.save(alert);
                         }
                         case WHATSAPP -> {
                             // @TODO
-                            alert.upsertSent(user.getLogin(), selectedMedium, false, false, "WHATSAPP Not yet implemented");
+                            alert.upsertSent(target.login(), selectedMedium, false, false, "WHATSAPP Not yet implemented");
                             alertRepository.save(alert);
                             log.warn("[alerts] WHATSAPP not yet implemented");
                         }
                         case TOPIC -> {
                             // @TODO
-                            alert.upsertSent(user.getLogin(), selectedMedium, false, false, "TOPIC Not yet implemented");
+                            alert.upsertSent(target.login(), selectedMedium, false, false, "TOPIC Not yet implemented");
                             alertRepository.save(alert);
                             log.warn("[alerts] TOPIC not yet implemented");
                         }
                         case WEBHOOK -> {
                             // @TODO
-                            alert.upsertSent(user.getLogin(), selectedMedium, false, false, "WEBHOOK Not yet implemented");
+                            alert.upsertSent(target.login(), selectedMedium, false, false, "WEBHOOK Not yet implemented");
                             alertRepository.save(alert);
                             log.warn("[alerts] WEBHOOK not yet implemented");
                         }
                     }
                 } else {
-                    log.debug("[alerts] User {} presonal data not accesible",  user.getLogin());
-                    alert.upsertSent(user.getLogin(), selectedMedium, false, false, "alerts-user-no-personal-data");
+                    log.debug("[alerts] User {} presonal data not accesible",  target.login());
+                    alert.upsertSent(target.login(), selectedMedium, false, false, "alerts-user-no-personal-data");
                     alertRepository.save(alert);
                 }
 
@@ -564,13 +630,12 @@ public class AlertService {
                                 alert,
                                 template,
                                 messageVariant.getMessage(),
-                                groups.get(user.getLogin()),
-                                user
+                               target
                         );
 
                         // write the alert event in the popup table
                         alertPopupService.createPopup(
-                                user.getLogin(),
+                                target.login(),
                                 alert.getAlertId(),
                                 renderedMessage,
                                 template.getCriticality(),
@@ -578,9 +643,9 @@ public class AlertService {
                         );
 
                         // Update state
-                        alert.upsertSent(user.getLogin(), AlertMedium.POPUP, true, true, "");
+                        alert.upsertSent(target.login(), AlertMedium.POPUP, true, true, "");
                     } else {
-                        alert.upsertSent(user.getLogin(), AlertMedium.POPUP, false, false, "alerts-no-popup-config");
+                        alert.upsertSent(target.login(), AlertMedium.POPUP, false, false, "alerts-no-popup-config");
                     }
 
                 }
@@ -633,20 +698,17 @@ public class AlertService {
      * @param alert - the alert
      * @param template - the related alert template
      * @param messageTemplate - the right message template
-     * @param group - the user associated group
-     * @param user - the targeted user
+     * @param target - the targeted contact / user
      * @return the rendered message with all placeholders replaced
      */
     private String renderMessage(
             Alert alert,
             AlertTemplate template,
             String messageTemplate,
-            Group group,
-            User user
+            ContactTarget target
     ) {
         // compose the parameter list based on the template
         ArrayList<String> parameters = new ArrayList<>();
-        if (user != null) user.setKeys(commonConfig.getEncryptionKey(), commonConfig.getApplicationKey());
         for (AlertParameterEntry p : template.getParameters() ) {
             switch (p.getType()) {
                 case DEVICE_ID -> parameters.add(alert.getDeviceId());
@@ -658,48 +720,17 @@ public class AlertService {
                         parameters.add("Unknown");
                     }
                 }
-                case GROUP_NAME -> parameters.add(group != null ? group.getName() : "");
-                case USER_FIRSTNAME -> {
-                    if (user == null) { parameters.add(""); break; }
-                    try {
-                        parameters.add(user.getEncProfileFirstName());
-                    } catch (ITParseException x) {
-                        parameters.add("");
-                    }
-                }
-                case USER_LASTNAME -> {
-                    if (user == null) { parameters.add(""); break; }
-                    try {
-                        parameters.add(user.getEncProfileLastName());
-                    } catch (ITParseException x) {
-                        parameters.add("");
-                    }
-                }
-                case USER_GENDER -> {
-                    if (user == null) { parameters.add(""); break; }
-                    try {
-                        parameters.add(user.getEncProfileGender());
-                    } catch (ITParseException x) {
-                        parameters.add("");
-                    }
-                }
+                case GROUP_NAME -> parameters.add(target.groupName() != null ? target.groupName() : "");
+                case USER_FIRSTNAME -> parameters.add(target.firstName() != null ? target.firstName() : "");
+                case USER_LASTNAME -> parameters.add(target.lastName() != null ? target.lastName() : "");
+                case USER_GENDER -> parameters.add(target.gender() != null ? target.gender() : "");
                 case ALERT_TIME -> {
-                    try {
-                        String tzId = (user != null) ? user.getEncProfileTimezone() : null;
-                        TimeZone tz = (tzId != null && !tzId.isBlank()) ? TimeZone.getTimeZone(tzId) : null;
+                        TimeZone tz = (target.timezone() != null && !target.timezone().isBlank()) ? TimeZone.getTimeZone(target.timezone()) : null;
                         parameters.add(DateConverters.timestampToTime(alert.getFireMs(), tz));
-                    } catch (ITParseException x) {
-                        parameters.add(DateConverters.timestampToTime(alert.getFireMs(), null));
-                    }
                 }
                 case ALERT_DATE_TIME -> {
-                    try {
-                        String tzId = (user != null) ? user.getEncProfileTimezone() : null;
-                        TimeZone tz = (tzId != null && !tzId.isBlank()) ? TimeZone.getTimeZone(tzId) : null;
+                        TimeZone tz = (target.timezone() != null && !target.timezone().isBlank()) ? TimeZone.getTimeZone(target.timezone()) : null;
                         parameters.add(DateConverters.timestampToDateTime(alert.getFireMs(), tz));
-                    } catch (ITParseException x) {
-                        parameters.add(DateConverters.timestampToDateTime(alert.getFireMs(), null));
-                    }
                 }
                 case CUSTOM_PARAM -> parameters.add(p.getParam());
                 case SERVICE_NAME -> parameters.add(commonConfig.getCommonServiceName());
@@ -727,8 +758,6 @@ public class AlertService {
             }
         }
 
-        if (user != null) user.cleanKeys();
-
         // Now replace the parameters in the mesage
         String result = messageTemplate;
         for (int i = 0; i < parameters.size(); i++) {
@@ -748,9 +777,10 @@ public class AlertService {
      * @param alertId         - stable business identifier, already instantiated
      * @param alertDefRef     - source module reference key
      * @param alertTemplateId - shortId of the AlertTemplate to use
-     * @param targetedGroups  - list of group identifiers used as the broadcast perimeter for user fan-out
+     * @param targetedGroups  - list of group identifiers used as the broadcast perimeter for user fan-out ; use ctc_xxx for individual contact target
      * @param parameters      - positional substitution values ({1}, {2}, ...)
      * @param requestMs       - event detection timestamp (ms since epoch)
+     * @param includesContact - also send alert to related contacts (NCE edition)
      * @return the persisted Alert in PENDING_QUEUE state, or null when rejected as a duplicate
      * @throws ITParseException when the referenced template does not exist
      */
@@ -761,7 +791,8 @@ public class AlertService {
             String deviceId,
             List<String> targetedGroups,
             List<String> parameters,
-            long requestMs
+            long requestMs,
+            boolean includesContact
     ) throws ITParseException {
 
         AlertTemplate template;
@@ -798,7 +829,7 @@ public class AlertService {
 
         String publicAccessId = RandomString.getRandomString(24);
         // Persist first as PENDING to obtain the MongoDB id, then transition to PENDING_QUEUE
-        Alert alert = Alert.newAlert(alertId, alertDefRef, alertTemplateId, deviceId, targetedGroups, parameters, requestMs, publicAccessId);
+        Alert alert = Alert.newAlert(alertId, alertDefRef, alertTemplateId, deviceId, targetedGroups, parameters, requestMs, publicAccessId, includesContact);
         if ( template.getBehavior() == AlertBehavior.FIRE_TO_END) {
             alert.setRetryMs(requestMs+template.getRetryMs());
         }

@@ -66,6 +66,9 @@ public class Alert {
     // Groups identifier used as the broadcast perimeter for user fan-out
     protected List<String> targetedGroups;
 
+    // Includes the contacts to the alert
+    protected boolean includesContact = false;
+
     // To be later used, alert parameter (not the static parameter replacement)
     protected List<String> parameters;
 
@@ -116,7 +119,8 @@ public class Alert {
             List<String> groupIds,
             List<String> parameters,
             long requestMs,
-            String publicAccessId
+            String publicAccessId,
+            boolean includesContact
     ) {
         Alert a = new Alert();
         a.setAlertId(alertId);
@@ -133,6 +137,7 @@ public class Alert {
         a.setPublicAccessId(publicAccessId);
         a.setError("");
         a.setFires(0);
+        a.setIncludesContact(includesContact);
         return a;
     }
 
@@ -234,5 +239,13 @@ public class Alert {
 
     public void setRetryMs(long retryMs) {
         this.retryMs = retryMs;
+    }
+
+    public boolean isIncludesContact() {
+        return includesContact;
+    }
+
+    public void setIncludesContact(boolean includesContact) {
+        this.includesContact = includesContact;
     }
 }
