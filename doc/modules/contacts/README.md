@@ -46,6 +46,7 @@ A user can only edit contacts they have created, even if they can access the lis
   "salt": [ "numbers" ],          // encryption salt 
   
   "language": "string",           // contact language (ISO country)
+  "timeZone": "string",           // contact timezone (IANA name, e.g. CET, Europe/Paris)
   
   "alertPreference": {
     "email": "boolean",           // contact email alert preference
@@ -135,6 +136,7 @@ All endpoints are under the base path `/contacts/1.0/` and require `ROLE_LOGIN_C
 | `pushAddress` | string | conditional | Push notification address. Required if `email` and `phoneNumber` are absent. |
 | `gender` | string | no | Free-text gender. |
 | `language` | string | no | Language preference (e.g. `fr-fr`). |
+| `timeZone` | string | no | IANA timezone name (e.g. `CET`, `Europe/Paris`). |
 | `companyName` | string | no | Company name. |
 | `address` | string | no | Street address. |
 | `city` | string | no | City. |
@@ -171,6 +173,7 @@ All endpoints are under the base path `/contacts/1.0/` and require `ROLE_LOGIN_C
 | `pushAddress` | string | Null = no change, empty = clear. |
 | `gender` | string | Null = no change, empty = clear. |
 | `language` | string | Null = no change, empty = clear. |
+| `timeZone` | string | Null = no change, empty = clear. |
 | `companyName` | string | Null = no change, empty = clear. |
 | `address` | string | Null = no change, empty = clear. |
 | `city` | string | Null = no change, empty = clear. |
@@ -232,6 +235,7 @@ All endpoints are under the base path `/contacts/1.0/` and require `ROLE_LOGIN_C
 | `pushAddress` | string | Decrypted push address. |
 | `gender` | string | Decrypted gender (free text). |
 | `language` | string | Language preference (2x2 ISO code). |
+| `timeZone` | string | IANA timezone name. |
 | `companyName` | string | Decrypted company name. |
 | `address` | string | Decrypted street address. |
 | `city` | string | Decrypted city. |

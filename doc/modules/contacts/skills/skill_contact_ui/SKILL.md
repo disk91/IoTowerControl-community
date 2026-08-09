@@ -107,6 +107,7 @@ When no contacts are visible for this user (render empty state), the response is
   "pushAddress": "fcm://token-xyz",
   "gender": "Mr",
   "language": "fr",
+  "timeZone": "CET",
   "companyName": "Acme Corp",
   "address": "12 Rue de la Paix",
   "city": "Paris",
@@ -140,6 +141,7 @@ When no contacts are visible for this user (render empty state), the response is
   "pushAddress": "",
   "gender": "Mr",
   "language": "fr",
+  "timeZone": "CET",
   "companyName": "Acme Corp",
   "address": "12 Rue de la Paix",
   "city": "Paris",
@@ -313,6 +315,7 @@ Contact means (required group — at least one):
 Additional (all optional):
 - Gender (text input)
 - Language (text input or select, e.g. `fr`, `en`)
+- Timezone (text input, IANA name e.g. `CET`, `Europe/Paris`)
 - Company name
 - Address / City / Zip code / Country code (ISO alpha-2)
 - VAT number
