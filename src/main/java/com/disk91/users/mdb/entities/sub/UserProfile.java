@@ -19,6 +19,9 @@ public class UserProfile implements CloneableObject<UserProfile> {
     // phone number (encrypted) - e164 format, ex: +33601020304
     private String phoneNumber;
 
+    // phone number hash for search. null = not hashed yet, "" no phone number
+    private String phoneHash = null;
+
     // address (encrypted)
     private String address;
 
@@ -119,6 +122,14 @@ public class UserProfile implements CloneableObject<UserProfile> {
         this.timezone = timezone;
     }
 
+    public String getPhoneHash() {
+        return phoneHash;
+    }
+
+    public void setPhoneHash(String phoneHash) {
+        this.phoneHash = phoneHash;
+    }
+
     // === CLONE ===
 
     public UserProfile clone() {
@@ -127,6 +138,7 @@ public class UserProfile implements CloneableObject<UserProfile> {
         u.setLastName(this.lastName);
         u.setGender(this.gender);
         u.setPhoneNumber(this.phoneNumber);
+        u.setPhoneHash(this.phoneHash);
         u.setAddress(this.address);
         u.setCity(this.city);
         u.setZipCode(this.zipCode);

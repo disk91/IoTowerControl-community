@@ -92,4 +92,15 @@ public interface UserRepository extends MongoRepository<User,String> {
     public List<User> findByGroupsMembership(List<String> groupShortIds);
 
 
+    /**
+     * Identify a list of users from a phone number hash.
+     * In principle, this should return a single user, but the value is not guaranteed to be unique.
+     * Multiple users may be returned if the same phone number has been used for several accounts.
+     * @param phoneHash - the hash of the phone number to search for
+     * @return list of users matching the phone number hash
+     **/
+    @Query("{ $or: [ { 'profile.phoneHash': ?0 }, { 'billingProfile.phoneHash': ?0 } ] }")
+    public List<User> findByProfileOrBillingPhoneHash(String phoneHash);
+
+
 }

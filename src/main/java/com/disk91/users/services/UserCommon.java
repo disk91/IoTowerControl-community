@@ -402,4 +402,21 @@ public class UserCommon {
         }
         return res;
     }
+
+    /**
+     * This function retrieves all users who use the phone number passed as a parameter, either in their profile or in
+     * their building profile. The search is performed by comparing the hashes.
+     * @param phoneNumber - the phone number to search for
+     * @return list of users matching the phone number
+     */
+    public List<User> getUsersWithPhoneNumber(String phoneNumber) {
+        try {
+            String phoneHash = User.encodeLogin(phoneNumber);
+            return userRepository.findByProfileOrBillingPhoneHash(phoneHash);
+        } catch (ITParseException x) {
+            return new ArrayList<>();
+        }
+    }
+    
+
 }

@@ -61,6 +61,7 @@ The user data structure is defined as follows:
         "firstname": "string",        // user first name [Base64(encrypted)]
         "lastname": "string",         // user last name [Base64(encrypted)]
         "phoneNumber": "string",      // user phone number e164 format [Base64(encrypted)]
+        "phoneHash" : "string",       // user phone number hash for search optimization
         "address": "string",          // user address [Base64(encrypted)]
         "city": "string",             // user city [Base64(encrypted)]
         "zipCode": "string",          // user zip code [Base64(encrypted)]
@@ -77,6 +78,7 @@ The user data structure is defined as follows:
         "lastname": "string",         // user last name [Base64(encrypted)]
         "companyName": "string",      // user company name [Base64(encrypted)]
         "phoneNumber": "string",      // user phone number [Base64(encrypted)]
+        "phoneHash" : "string",       // user phone number hash for search optimization
         "address": "string",          // user address [Base64(encrypted)]
         "city": "string",             // user city [Base64(encrypted)]
         "zipCode": "string",          // user zip code [Base64(encrypted)]

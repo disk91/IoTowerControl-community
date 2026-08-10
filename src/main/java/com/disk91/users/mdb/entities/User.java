@@ -54,6 +54,8 @@ import static com.disk91.users.mdb.entities.sub.TwoFATypes.NONE;
 @Document(collection = "users_users")
 @CompoundIndexes({
         @CompoundIndex(name = "login", def = "{'login': 'hashed'}"),
+        @CompoundIndex(name = "user_profile_phone_hash", def = "{'profile.phoneHash': 'hashed'}"),
+        @CompoundIndex(name = "user_billing_phone_hash", def = "{'billingProfile.phoneHash': 'hashed'}")
 })
 public class User implements CloneableObject<User> {
 
@@ -940,6 +942,17 @@ public class User implements CloneableObject<User> {
         return EncryptionHelper.decrypt(this.profile.getPhoneNumber(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
+    public String getProfilePhoneHash() throws ITParseException {
+        if ( this.profile.getPhoneHash() == null  ) {
+            if ( this.getProfile().getPhoneNumber() == null || this.getProfile().getPhoneNumber().isEmpty() ) {
+                    this.getProfile().setPhoneHash("");
+                return "";
+            }
+            this.getProfile().setPhoneHash(User.encodeLogin(this.getEncProfilePhone()));
+        }
+        return this.getProfile().getPhoneHash();
+    }
+
     public String getEncProfileAddress() throws ITParseException {
         return EncryptionHelper.decrypt(this.profile.getAddress(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
@@ -990,6 +1003,7 @@ public class User implements CloneableObject<User> {
     public void setEncProfilePhone(String _value)  throws ITParseException {
         if (this.profile == null) throw new ITParseException("Profile not set");
         this.profile.setPhoneNumber(EncryptionHelper.encrypt(_value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
+        this.profile.setPhoneHash(User.encodeLogin(_value));
     }
 
     public void setEncProfileAddress(String _value)  throws ITParseException {
@@ -1048,6 +1062,18 @@ public class User implements CloneableObject<User> {
     public String getEncBillingPhone() throws ITParseException {
         return EncryptionHelper.decrypt(this.billingProfile.getPhoneNumber(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
+
+    public String getBillingPhoneHash() throws ITParseException {
+        if ( this.billingProfile.getPhoneHash() == null  ) {
+            if ( this.billingProfile.getPhoneNumber() == null || this.billingProfile.getPhoneNumber().isEmpty() ) {
+                this.billingProfile.setPhoneHash("");
+                return "";
+            }
+            this.billingProfile.setPhoneHash(User.encodeLogin(this.getEncBillingPhone()));
+        }
+        return this.billingProfile.getPhoneHash();
+    }
+
 
     public String getEncBillingAddress() throws ITParseException {
         return EncryptionHelper.decrypt(this.billingProfile.getAddress(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
@@ -1108,6 +1134,7 @@ public class User implements CloneableObject<User> {
     public void setEncBillingPhone(String _value)  throws ITParseException {
         if (this.billingProfile == null) throw new ITParseException("Profile not set");
         this.billingProfile.setPhoneNumber(EncryptionHelper.encrypt(_value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
+        this.billingProfile.setPhoneHash(User.encodeLogin(_value));
     }
 
     public void setEncBillingAddress(String _value)  throws ITParseException {
