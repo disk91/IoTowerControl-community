@@ -25,6 +25,7 @@ public class ActionCatalog {
         FILES_INTEGRITY,
         FILES_UPDATE,
         FILES_DELETE,
+        FILES_ADDED,
 
         UNKNOWN
     }

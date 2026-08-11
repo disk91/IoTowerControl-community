@@ -76,6 +76,14 @@ public interface FileStoredRepository extends JpaRepository<FileStored, String> 
     Optional<FileStored> findByShortName(String shortName);
 
     /**
+     * Find files by its originalName and owner
+     * @param originalName - name used
+     * @return
+     */
+    List<FileStored> findByOwnerIdAndOriginalName(String ownerId, String originalName);
+
+
+    /**
      * Check whether a given short name is already taken.
      * Used during short name generation to guarantee uniqueness before persisting.
      * @param shortName - candidate 6-character short name

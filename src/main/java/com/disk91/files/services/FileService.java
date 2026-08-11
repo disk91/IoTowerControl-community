@@ -584,6 +584,22 @@ public class FileService {
         log.info("[files] File {} deleted by {}", file.getUniqueName(), requestorLogin);
     }
 
+    /**
+     * Deleting records through an internal administrator procedure without going through the APIs.
+     * Permissions are not checked. Be careful.
+     * @param requestorLogin - for audit log
+     * @param file - file to be deleted
+     */
+    public void adminDeleteFile(String requestorLogin, FileStored file) {
+        fileStoredRepository.deleteById(file.getId());
+        fileCache.flushFile(file.getUniqueName());
+        auditIntegration.auditLog(
+                ModuleCatalog.Modules.FILES,
+                ActionCatalog.getActionName(ActionCatalog.Actions.FILES_DELETE),
+                requestorLogin, "File deleted: id={0}",
+                new String[]{file.getUniqueName()});
+    }
+
     // ================================================================================================================
     // ADMIN LIST
     // ================================================================================================================
@@ -668,6 +684,174 @@ public class FileService {
      */
     public List<FileStored> listUserFiles(String requestorLogin) {
         return fileStoredRepository.findByOwnerIdOrderByCreatedAtDesc(requestorLogin);
+    }
+
+    // ================================================================================================================
+    // INTERNAL IMPORT (migration / batch use)
+    // ================================================================================================================
+
+    /**
+     * Import an image from raw bytes, bypassing quota checks and role validation.
+     * Intended for internal migration use only. Detects MIME type, rejects non-images,
+     * resizes if needed, generates a thumbnail, computes HMAC signature and persists.
+     *
+     * @param fileBytes        - raw image bytes already downloaded
+     * @param originalFilename - original filename hint (used for MIME fallback and stored name)
+     * @param ownerLogin       - login hash of the file owner
+     * @param accessType       - target access type
+     * @param withAccessKey    - when true, generate a public access key
+     * @param withShortName    - when true, generate and assign a unique 6-character short name
+     * @return the persisted FileStored entity
+     * @throws ITParseException - when the content is not a valid image or any processing step fails
+     */
+    public FileStored importRawImageBytes(
+            byte[] fileBytes,
+            String originalFilename,
+            String ownerLogin,
+            FileAccessType accessType,
+            boolean withShortName,
+            boolean withAccessKey
+    ) throws ITParseException {
+
+        // Detect MIME type from content bytes (not just extension)
+        String mimeType = detectMimeType(fileBytes, originalFilename);
+        FileMimeCategory mimeCategory = categorizeMime(mimeType);
+        if (mimeCategory != FileMimeCategory.IMAGE) {
+            log.warn("[files] Import rejected: not an image, MIME='{}' owner={}", mimeType, ownerLogin);
+            throw new ITParseException("files-import-not-an-image");
+        }
+
+        String id          = UUID.randomUUID().toString();
+        long   uploadMs    = Now.NowUtcMs();
+        String ext ;
+        String imageFormat;
+        switch(mimeType) {
+            case "image/jpeg":
+                imageFormat = "jpeg";
+                ext = ".jpg";
+                break;
+            case "image/png":
+                imageFormat = "png";
+                ext = ".png";
+                break;
+            default:
+                log.warn("[files] Import rejected: unknown mime type {}", mimeType);
+                throw new ITParseException("files-import-unknown-mime-type");
+        }
+        String uniqueName  = id + "-" + uploadMs + ext;
+
+        // Resize original and generate thumbnail
+        byte[] thumbnailBytes       = null;
+        String thumbnailUniqueName  = null;
+        String thumbnailSignature   = null;
+        try {
+            BufferedImage img = ImageIO.read(new ByteArrayInputStream(fileBytes));
+            if (img == null) {
+                log.warn("[files] ImageIO could not decode import image '{}' owner={}", originalFilename, ownerLogin);
+                throw new ITParseException("files-import-image-read-error");
+            }
+
+            if (filesConfig.getImageMaxPixels() > 0) {
+                int maxDim = Math.max(img.getWidth(), img.getHeight());
+                if (maxDim > filesConfig.getImageMaxPixels()) {
+                    img = scaleImage(img, filesConfig.getImageMaxPixels());
+                    fileBytes = imageToBytes(img, imageFormat);
+                }
+            }
+
+            BufferedImage thumbImg  = scaleImage(img, filesConfig.getImageThumbnailPixels());
+            thumbnailBytes          = imageToBytes(thumbImg, imageFormat);
+            thumbnailUniqueName     = id + "-" + uploadMs + "-thumb." + ext;
+            thumbnailSignature      = computeHmacSignature(thumbnailBytes);
+        } catch (ITParseException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("[files] Image processing failed for import '{}' owner={}: {}", originalFilename, ownerLogin, e.getMessage());
+            throw new ITParseException("files-import-image-process-error");
+        }
+
+        // Compute HMAC-SHA256 integrity signature on the (possibly resized) bytes
+        String signature;
+        try {
+            signature = computeHmacSignature(fileBytes);
+        } catch (Exception e) {
+            log.error("[files] Signature computation failed for import owner={}", ownerLogin, e);
+            throw new ITParseException("files-import-signature-error");
+        }
+
+        // Build storage directory and write files to disk
+        Path storageDir = Paths.get(filesConfig.getStorageRootPath())
+                .resolve(String.valueOf(id.charAt(0)))
+                .resolve(String.valueOf(id.charAt(1)));
+        try {
+            Files.createDirectories(storageDir);
+            Files.write(storageDir.resolve(uniqueName), fileBytes);
+            Files.write(storageDir.resolve(thumbnailUniqueName), thumbnailBytes);
+        } catch (Exception e) {
+            log.error("[files] Failed to write imported image {} owner={}", uniqueName, ownerLogin, e);
+            throw new ITParseException("files-import-server-side-write-error");
+        }
+
+        // Persist the FileStored record
+        FileStored stored = new FileStored();
+        stored.setId(id);
+        stored.setUniqueName(uniqueName);
+        stored.setOriginalName(originalFilename);
+        stored.setMimeCategory(mimeCategory);
+        stored.setMimeType(mimeType);
+        stored.setSize(fileBytes.length);
+        stored.setOwnerId(ownerLogin);
+        stored.setAccessType(accessType);
+        stored.setAccessCount(0L);
+        stored.setCreatedAt(uploadMs);
+        stored.setUpdatedAt(uploadMs);
+        stored.setSignature(signature);
+        stored.setNoSignatureCheck(false);
+        stored.setThumbnailUniqueName(thumbnailUniqueName);
+        stored.setThumbnailSignature(thumbnailSignature);
+
+        // Generate a unique short name when explicitly requested
+        if (withShortName) {
+            String shortName = generateUniqueShortName();
+            stored.setShortName(shortName);
+            log.debug("[files] Short name '{}' assigned to file id={}", shortName, uniqueName);
+        }
+
+        // Generate a unique access key when explicitly requested
+        if (withAccessKey) {
+            String generatedKey = generateUniqueAccessKey();
+            stored.setAccessKey(generatedKey);
+            log.debug("[files] Access key assigned to file id={}", uniqueName);
+        }
+
+        fileCache.saveFile(stored);
+
+        // Audit log
+        auditIntegration.auditLog(
+                ModuleCatalog.Modules.FILES,
+                ActionCatalog.getActionName(ActionCatalog.Actions.FILES_ADDED),
+                ownerLogin, "Image added by system: id={0} size={1} accessType={2}",
+                new String[]{uniqueName, String.valueOf(fileBytes.length), accessType.name()});
+
+        log.debug("[files] Image imported: id={} size={} type={} access={} owner={}",
+                uniqueName, stored.getSize(), mimeType, accessType, ownerLogin);
+
+        return stored;
+    }
+
+    /**
+     * This function also returns true if a file with the same originalName already exists for this user.
+     * @param ownerLogin - login hash of the owner
+     * @param originalName - name used
+     * @return true if a file with the same originalName already exists for this user
+     */
+    public boolean isOriginalNameAlreadyExists(String ownerLogin, String originalName) {
+        List<FileStored> files = getFilesByOriginalName(ownerLogin, originalName);
+        return !files.isEmpty();
+    }
+
+    public List<FileStored> getFilesByOriginalName(String ownerLogin, String originalName) {
+       return fileStoredRepository.findByOwnerIdAndOriginalName(ownerLogin, originalName);
     }
 
     // ================================================================================================================
