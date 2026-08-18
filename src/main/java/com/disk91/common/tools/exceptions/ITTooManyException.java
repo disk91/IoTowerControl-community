@@ -19,10 +19,13 @@
  */
 package com.disk91.common.tools.exceptions;
 
+import java.io.Serial;
+
 public class ITTooManyException extends Exception {
+    @Serial
     private static final long serialVersionUID = 1L;
     public ITTooManyException() {
-        super("too many requests");
+        super("common-too-many-requests");
     }
     public ITTooManyException(String errorMessage) {
         super(errorMessage);

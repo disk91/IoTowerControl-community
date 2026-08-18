@@ -19,10 +19,13 @@
  */
 package com.disk91.common.tools.exceptions;
 
+import java.io.Serial;
+
 public class ITParseException extends Exception {
+    @Serial
     private static final long serialVersionUID = 1L;
     public ITParseException() {
-        super("invalid inputs");
+        super("common-invalid-inputs");
     }
     public ITParseException(String errorMessage) {
         super(errorMessage);

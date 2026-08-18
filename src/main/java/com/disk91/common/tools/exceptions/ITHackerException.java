@@ -19,10 +19,13 @@
  */
 package com.disk91.common.tools.exceptions;
 
+import java.io.Serial;
+
 public class ITHackerException extends Exception {
+    @Serial
     private static final long serialVersionUID = 1L;
     public ITHackerException() {
-        super("hacking attempt detected");
+        super("common-hacking-attempt-detected");
     }
     public ITHackerException(String errorMessage) {
         super(errorMessage);

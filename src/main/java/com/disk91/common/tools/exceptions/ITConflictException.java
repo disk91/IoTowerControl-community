@@ -21,13 +21,13 @@ package com.disk91.common.tools.exceptions;
 
 import java.io.Serial;
 
-public class ITOverQuotaException extends Exception {
+public class ITConflictException extends Exception {
     @Serial
     private static final long serialVersionUID = 1L;
-    public ITOverQuotaException() {
-        super("common-over-quota-or-rate");
+    public ITConflictException() {
+        super("common-conflict-detected");
     }
-    public ITOverQuotaException(String errorMessage) {
+    public ITConflictException(String errorMessage) {
         super(errorMessage);
     }
 }

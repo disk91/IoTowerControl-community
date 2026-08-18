@@ -19,10 +19,13 @@
  */
 package com.disk91.common.tools.exceptions;
 
+import java.io.Serial;
+
 public class ITNotFoundException extends Exception {
+    @Serial
     private static final long serialVersionUID = 1L;
     public ITNotFoundException() {
-        super("entity not found");
+        super("common-entity-not-found");
     }
     public ITNotFoundException(String errorMessage) {
         super(errorMessage);
