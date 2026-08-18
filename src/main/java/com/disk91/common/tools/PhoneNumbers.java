@@ -322,6 +322,46 @@ public class PhoneNumbers {
         return null;
     }
 
+    /**
+     * Compose an international E164 phone number from a local number and a country prefix.
+     * Strips spaces and separators from the local number, then removes the country trunk prefix
+     * if present (e.g. the leading "0" for France). Returns the full E164 string.
+     * Example: ext="+33", local="06 12 34 56 78" → "+33612345678"
+     *
+     * @param ext   - international country prefix, with or without leading '+' (e.g. "+33" or "33")
+     * @param local - local phone number, may contain spaces or separators (e.g. "06 12 34 56 78")
+     * @return E164 international number (e.g. "+33612345678"),
+     *         or null when the prefix is unknown or inputs are invalid
+     */
+    public static String composeInternational(String ext, String local) {
+        if (ext == null || ext.isBlank() || local == null || local.isBlank()) return null;
+
+        // Normalize prefix: strip leading '+' and any non-digit characters
+        String prefix = ext.trim().replaceAll("[^0-9]", "");
+        if (prefix.isEmpty()) return null;
+
+        // Find the matching country to retrieve the trunk prefix
+        E164Country country = null;
+        for (E164Country c : COUNTRIES) {
+            if (c.prefix().equals(prefix)) {
+                country = c;
+                break;
+            }
+        }
+        if (country == null) return null;
+
+        // Strip all non-digit characters from the local number
+        String digits = local.trim().replaceAll("[^0-9]", "");
+        if (digits.isEmpty()) return null;
+
+        // Remove the trunk prefix when the local number starts with it
+        if (!country.trunk().isEmpty() && digits.startsWith(country.trunk())) {
+            digits = digits.substring(country.trunk().length());
+        }
+
+        return "+" + prefix + digits;
+    }
+
     // =====================================================================================================
     // Private helpers
     // =====================================================================================================
