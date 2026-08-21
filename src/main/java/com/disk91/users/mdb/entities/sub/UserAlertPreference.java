@@ -1,16 +1,32 @@
 package com.disk91.users.mdb.entities.sub;
 
 import com.disk91.common.tools.CloneableObject;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 public class UserAlertPreference implements CloneableObject<UserAlertPreference> {
 
         // accept email alert
+        @Schema(
+                description = "Accept email alert",
+                example = "true",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
         private boolean emailAlert;
 
         // accept sms alert
+        @Schema(
+                description = "Accept SMS alert",
+                example = "false",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
         private boolean smsAlert;
 
         // accept push alert
+        @Schema(
+                description = "Accept push alert",
+                example = "false",
+                requiredMode = Schema.RequiredMode.REQUIRED
+        )
         private boolean pushAlert;
 
         // === GETTER / SETTER ===

@@ -1,14 +1,31 @@
 package com.disk91.users.mdb.entities.sub;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 public class UserBillingProfile extends UserProfile {
 
-    // Name of the company
+    // Name of the company (encrypted)
+    @Schema(
+            description = "Name of the company",
+            example = "Acme Inc.",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String companyName;
 
     // 2 digits country code (possible extension for more precision, if empty, use county)
+    @Schema(
+            description = "2 digits country code (possible extension for more precision, if empty, use county)",
+            example = "FR",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String countryCode;
 
     // VAT number
+    @Schema(
+            description = "TAX number",
+            example = "FR123456789",
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED
+    )
     private String vatNumber;
 
     // === GETTER / SETTER ===

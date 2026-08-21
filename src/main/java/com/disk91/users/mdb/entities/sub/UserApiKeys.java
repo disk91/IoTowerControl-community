@@ -4,30 +4,53 @@ import com.disk91.common.tools.CloneableObject;
 import com.disk91.common.tools.HexCodingTools;
 import com.disk91.common.tools.Now;
 import com.disk91.users.services.UsersRolesCache;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class UserApiKeys implements CloneableObject<UserApiKeys> {
 
-    // API key id, used to identify the right key, 6 hex char, random, unique for a user
+    @Schema(
+            description = "API key id, used to identify the right key, 6 hex char, random, unique for a user",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String id;
 
-    // API key name, given by user, used to identify the key
+    @Schema(
+            description = "API key name, given by user, used to identify the key",
+            example = "myApiKey",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private String name;
 
-    // API key secret, used to sign JWTs
+    @Schema(
+            description = "API key secret, shall not be exported in the API",
+            example = "myApiKeySecret",
+            requiredMode = Schema.RequiredMode.NOT_REQUIRED
+    )
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String secret;
 
-    // API key expiration date in MS since epoch, 0 means the key has been disabled
-    // User choice to diable it or automatic removal due to user right change
+    @Schema(
+            description = "API key expiration date in MS since epoch, 0 means the key has been disabled",
+            example = "172545052000",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private long expiration;
 
-    // Store the roles associated to this key to easily identify the key to remove when the user
-    // right change.
+    @Schema(
+            description = "The roles associated to this key to easily identify the key to remove when the user right change.",
+            example = "[\"ROLE_USER_ADMIN\",\"ROLE_GROUP_ADMIN\"]",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private List<String> roles;
 
-    // List of ACL associated to this key with some specific rights on these groups.
+    @Schema(
+            description = "The ACLs associated to this key to easily identify the key to remove when the user right change.",
+            requiredMode = Schema.RequiredMode.REQUIRED
+    )
     private List<UserAcl> acls;
 
     // === FUNCTIONALITY ===

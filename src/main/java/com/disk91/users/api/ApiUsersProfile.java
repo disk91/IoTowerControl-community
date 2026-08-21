@@ -420,6 +420,44 @@ public class ApiUsersProfile {
         }
     }
 
+    // ============================================================================
+    // User Profile personal data modification by an admin or not depends on rights
+    // ============================================================================
+
+    /**
+     * Detailed Profile endpoint
+     *
+     * This is a detailed profile structure you can get from the user information, mostly used for interface
+     * display. This allows modification of most of the personal data of the user profile information
+     *
+     * This endpoint needs to have a completed signup process
+     */
+    @Operation(
+            summary = "User detailed profile",
+            description = "Returns the detailed information about the user to manage a front-end structure, the user and admin will be able to edit these information, " +
+                    "based on the rights of the user. The role, groups and acl are managed elsewhere.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "User detailed profile", content = @Content(schema = @Schema(implementation = UserDetailedProfileResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "Failure", content = @Content(schema = @Schema(implementation = ActionResult.class)))
+            }
+    )
+    @RequestMapping(
+            value = "/detailed",
+            produces = "application/json",
+            method = RequestMethod.GET
+    )
+    @PreAuthorize("hasAnyRole('ROLE_LOGIN_COMPLETE') and !hasRole('ROLE_LOGIN_API')")
+    // ----------------------------------------------------------------------
+    public ResponseEntity<?> getSelfDetailedProfile(
+            HttpServletRequest request
+    ) {
+        try {
+            UserDetailedProfileResponse r = userProfileService.getMyUserDetailedProfile(request, request.getUserPrincipal().getName(),request.getUserPrincipal().getName());
+            return new ResponseEntity<>(r, HttpStatus.OK);
+        } catch ( ITRightException | ITParseException e) {
+            return new ResponseEntity<>(ActionResult.BADREQUEST(e.getMessage()), HttpStatus.BAD_REQUEST);
+        }
+    }
 
     // ========================================================================
     // User Profile modification by an admin or not, depends on zones
@@ -474,6 +512,7 @@ public class ApiUsersProfile {
 
     /**
      * User profile get, this is mostly for the Groups, Roles & ACL modification
+     * A POST message is used to pass the parameters even if the action is a GET equivalent.
      *
      * This endpoint allows a user with the rights, to get a user profile. Focus on the groups, roles and ACLs
      * of the profile.

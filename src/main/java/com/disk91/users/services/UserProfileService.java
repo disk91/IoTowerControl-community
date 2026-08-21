@@ -130,6 +130,58 @@ public class UserProfileService {
         }
     }
 
+
+    /**
+     * Allows a user or an administrator to access a user's information. This API returns a large amount of personal
+     * information, and administrator access will be tracked accordingly. Otherwise, a user can only retrieve
+     * information about themselves.
+     *
+     * @param req
+     * @param requestor
+     * @param user
+     * @return
+     * @throws ITRightException
+     */
+    public UserDetailedProfileResponse getMyUserDetailedProfile(
+            HttpServletRequest req,
+            String requestor,
+            String user
+    ) throws ITRightException, ITParseException {
+
+        try {
+            User _requestor = userCache.getUser(requestor);
+
+            if ( !userCommon.isLegitAccess(requestor,user,false) ) {
+                log.warn("[users] Requestor {} does not have access right to user {} profile details", requestor, user);
+                throw new ITRightException("user-profile-no-access");
+            }
+
+            User _user = _requestor;
+            if ( requestor.compareTo(user) != 0 ) {
+                try {
+                    _user = userCache.getUser(user);
+                } catch (ITNotFoundException x){
+                    log.warn("[users] Searched user does not exists", x);
+                    throw new ITRightException("user-profile-user-not-found");
+                }
+            }
+
+            return UserDetailedProfileResponse.of(
+                    _user,
+                    commonConfig.getEncryptionKey(),
+                    commonConfig.getApplicationKey(),
+                    (_requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN))
+            );
+
+        } catch (ITNotFoundException x) {
+            log.error("[users] Requestor does not exists", x);
+            throw new ITRightException("user-profile-user-not-found");
+        }
+    }
+
+
+
+
     /**
      * Upsert / Delete a customField for a user in the user profile section.
      * When the value is empty, the custom field is deleted.

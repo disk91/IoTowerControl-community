@@ -65,8 +65,8 @@ A user can only edit contacts they have created, even if they can access the lis
   "vatNumber": "string",          // contact VAT number [Base64(encrypted)]
 
   "customFields": [{              // contact custom fields
-        "name": "string",            // custom field key [clear], the one starting with `basic_` or `cbasic_` are returned in the basic API
-        "value": "string"            // custom field value [Base64(encrypted)] value will be clear for seach when name start with `clear_` or `cbasic_`
+        "name": "string",            // custom field key [clear], the one starting with `basic_` or `cbasic_` are returned in the basic API ; `hide_` or `chide` are not returned to user. 
+        "value": "string"            // custom field value [Base64(encrypted)] value will be clear for seach when name start with `clear_` or `cbasic_` or `chide`
   }],
 
   "creationDate": "date",         // contact creation date in MS since epoch

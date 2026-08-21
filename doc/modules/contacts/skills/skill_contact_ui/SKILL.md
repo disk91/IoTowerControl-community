@@ -322,7 +322,9 @@ Additional (all optional):
 
 Custom fields (dynamic list):
 - Key/value pairs; user can add or remove rows.
-- Names starting with `clear_` or `cbasic_` are stored in clear; all others are encrypted.
+- Names starting with `clear_` or `cbasic_` or `chide` are stored in clear; all others are encrypted.
+- Names starting with `hide_` or `chide_` are not displayed to end-user.
+- Names starting with `basic_` or `cbasic_` are returned in the user basic API and may be preferred for custom field with global impact on UI.
 
 **Group assignment (ROLE_CONTACT_ADMIN only):**
 - Call `GET /users/1.0/groups` on page load to get the accessible group tree.
