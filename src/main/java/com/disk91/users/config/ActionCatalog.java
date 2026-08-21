@@ -20,6 +20,7 @@ public class ActionCatalog {
         APIKEY_CREATION,
         APIKEY_DELETION,
         APIKEY_RENEWAL,
+        PERSONAL_DATA_ACCESS,
 
         UNKNOWN
     }

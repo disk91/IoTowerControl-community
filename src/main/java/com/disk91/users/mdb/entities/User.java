@@ -818,6 +818,11 @@ public class User implements CloneableObject<User> {
         return !( name.startsWith("clear_") || name.startsWith("cbasic_") || name.startsWith("chide_") );
     }
 
+    /**
+     * Extracts all custom fields from the profile as a list of custom fields, all of which are decrypted.
+     * @return
+     * @throws ITParseException
+     */
     public ArrayList<CustomField> getEncCustomFields() throws ITParseException {
         ArrayList<CustomField> customFields = new ArrayList<>();
         if ( this.customFields == null ) this.customFields = new ArrayList<>();
@@ -908,7 +913,11 @@ public class User implements CloneableObject<User> {
         return somethingHasChanged;
     }
 
-
+    /**
+     * Create a set of encrypted custom fields from a given list of custom fields. This replaces all global custom fields for the user.
+     * @param _value
+     * @throws ITParseException
+     */
     public void setEncCustomFields(ArrayList<CustomField> _value)  throws ITParseException {
         ArrayList<CustomField> customFields = new ArrayList<>();
         if ( this.customFields == null ) this.customFields = new ArrayList<>();
@@ -928,6 +937,7 @@ public class User implements CloneableObject<User> {
     // --------------------
     // Profile
     public String getEncProfileGender() throws ITParseException {
+        if ( this.profile.getGender() == null || this.profile.getGender().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.profile.getGender(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
@@ -942,6 +952,7 @@ public class User implements CloneableObject<User> {
     }
 
     public String getEncProfilePhone() throws ITParseException {
+        if ( this.profile.getPhoneNumber() == null || this.profile.getPhoneNumber().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.profile.getPhoneNumber(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
@@ -957,22 +968,27 @@ public class User implements CloneableObject<User> {
     }
 
     public String getEncProfileAddress() throws ITParseException {
+        if ( this.profile.getAddress() == null || this.profile.getAddress().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.profile.getAddress(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
     public String getEncProfileCity() throws ITParseException {
+        if ( this.profile.getCity() == null || this.profile.getCity().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.profile.getCity(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
     public String getEncProfileZipCode() throws ITParseException {
+        if ( this.profile.getZipCode() == null || this.profile.getZipCode().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.profile.getZipCode(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
     public String getEncProfileCountry() throws ITParseException {
+        if ( this.profile.getCountry() == null || this.profile.getCountry().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.profile.getCountry(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
     public String getEncProfileTimezone() throws ITParseException {
+        if ( this.profile.getTimezone() == null || this.profile.getTimezone().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.profile.getTimezone(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
@@ -1051,18 +1067,22 @@ public class User implements CloneableObject<User> {
     // Billing Profile
 
     public String getEncBillingGender() throws ITParseException {
+        if ( this.billingProfile.getGender() == null || this.billingProfile.getGender().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.billingProfile.getGender(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
     public String getEncBillingFirstName() throws ITParseException {
+        if ( this.billingProfile.getFirstName() == null || this.billingProfile.getFirstName().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.billingProfile.getFirstName(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
     public String getEncBillingLastName() throws ITParseException {
+        if ( this.billingProfile.getLastName() == null || this.billingProfile.getLastName().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.billingProfile.getLastName(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
     public String getEncBillingPhone() throws ITParseException {
+        if ( this.billingProfile.getPhoneNumber() == null || this.billingProfile.getPhoneNumber().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.billingProfile.getPhoneNumber(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
@@ -1077,24 +1097,28 @@ public class User implements CloneableObject<User> {
         return this.billingProfile.getPhoneHash();
     }
 
-
     public String getEncBillingAddress() throws ITParseException {
+        if ( this.billingProfile.getAddress() == null || this.billingProfile.getAddress().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.billingProfile.getAddress(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
     public String getEncBillingCity() throws ITParseException {
+        if ( this.billingProfile.getCity() == null || this.billingProfile.getCity().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.billingProfile.getCity(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
     public String getEncBillingZipCode() throws ITParseException {
+        if ( this.billingProfile.getZipCode() == null || this.billingProfile.getZipCode().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.billingProfile.getZipCode(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
     public String getEncBillingCountry() throws ITParseException {
+        if ( this.billingProfile.getCountry() == null || this.billingProfile.getCountry().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.billingProfile.getCountry(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
     public String getEncBillingTimezone() throws ITParseException {
+        if ( this.billingProfile.getTimezone() == null || this.billingProfile.getTimezone().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.billingProfile.getTimezone(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
@@ -1110,14 +1134,17 @@ public class User implements CloneableObject<User> {
     }
 
     public String getEncBillingCompanyName() throws ITParseException {
+        if ( this.billingProfile.getCompanyName() == null || this.billingProfile.getCompanyName().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.billingProfile.getCompanyName(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
     public String getEncBillingCountryCode() throws ITParseException {
+        if ( this.billingProfile.getCountryCode() == null || this.billingProfile.getCountryCode().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.billingProfile.getCountryCode(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 
     public String getEncBillingVatNumber() throws ITParseException {
+        if ( this.billingProfile.getVatNumber() == null || this.billingProfile.getVatNumber().isEmpty() ) return "";
         return EncryptionHelper.decrypt(this.billingProfile.getVatNumber(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey()));
     }
 

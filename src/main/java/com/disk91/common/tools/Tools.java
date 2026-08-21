@@ -168,5 +168,16 @@ public class Tools {
         }
     }
 
+    /**
+     * It checks whether strings can be different. Potentially, one of them may be null, or both may be null.
+     * @param s1
+     * @param s2
+     * @return
+     */
+    public static boolean areStringsDifferent(String s1, String s2) {
+        if ( s1 == null && s2 == null ) return false;
+        if ( s1 == null || s2 == null ) return true;
+        return !s1.equals(s2);
+    }
 
 }

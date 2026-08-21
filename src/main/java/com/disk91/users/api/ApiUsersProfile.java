@@ -452,7 +452,80 @@ public class ApiUsersProfile {
             HttpServletRequest request
     ) {
         try {
-            UserDetailedProfileResponse r = userProfileService.getMyUserDetailedProfile(request, request.getUserPrincipal().getName(),request.getUserPrincipal().getName());
+            UserDetailedProfileResponse r = userProfileService.getUserDetailedProfile(request, request.getUserPrincipal().getName(),request.getUserPrincipal().getName());
+            return new ResponseEntity<>(r, HttpStatus.OK);
+        } catch ( ITRightException | ITParseException e) {
+            return new ResponseEntity<>(ActionResult.BADREQUEST(e.getMessage()), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    /**
+     * Detailed Profile endpoint for admin requesting other user profile
+     *
+     * This is a detailed profile structure you can get from the user information, mostly used for interface
+     * display. This allows modification of most of the personal data of the user profile information
+     *
+     * This endpoint needs to have a completed signup process
+     */
+    @Operation(
+            summary = "User detailed profile",
+            description = "Returns the detailed information about the user to manage a front-end structure, the user and admin will be able to edit these information, " +
+                    "based on the rights of the user. The role, groups and acl are managed elsewhere.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "User detailed profile", content = @Content(schema = @Schema(implementation = UserDetailedProfileResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "Failure", content = @Content(schema = @Schema(implementation = ActionResult.class)))
+            }
+    )
+    @RequestMapping(
+            value = "/detailed/{login}",
+            produces = "application/json",
+            method = RequestMethod.GET
+    )
+    @PreAuthorize("hasAnyRole('ROLE_LOGIN_COMPLETE') and !hasRole('ROLE_LOGIN_API')")
+    // ----------------------------------------------------------------------
+    public ResponseEntity<?> getSelfDetailedProfile(
+            HttpServletRequest request,
+            @PathVariable("login") String login
+    ) {
+        try {
+            UserDetailedProfileResponse r = userProfileService.getUserDetailedProfile(request, request.getUserPrincipal().getName(),login);
+            return new ResponseEntity<>(r, HttpStatus.OK);
+        } catch ( ITRightException | ITParseException e) {
+            return new ResponseEntity<>(ActionResult.BADREQUEST(e.getMessage()), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+
+    /**
+     * Detailed Profile endpoint Update
+     *
+     * This is a detailed profile structure you can get from the user information, mostly used for interface
+     * display. This allows modification of most of the personal data of the user profile information
+     *
+     * This endpoint needs to have a completed signup process
+     */
+    @Operation(
+            summary = "User detailed profile Update",
+            description = "Modify the detailed information about the user to manage a front-end structure, the user and admin will be able to edit these information, " +
+                    "based on the rights of the user. The role, groups and acl are managed elsewhere. Returns the updated profile.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "User detailed profile", content = @Content(schema = @Schema(implementation = UserDetailedProfileResponse.class))),
+                    @ApiResponse(responseCode = "400", description = "Failure", content = @Content(schema = @Schema(implementation = ActionResult.class)))
+            }
+    )
+    @RequestMapping(
+            value = "/detailed",
+            produces = "application/json",
+            method = RequestMethod.PUT
+    )
+    @PreAuthorize("hasAnyRole('ROLE_LOGIN_COMPLETE') and !hasRole('ROLE_LOGIN_API')")
+    // ----------------------------------------------------------------------
+    public ResponseEntity<?> updateSelfDetailedProfile(
+            HttpServletRequest request,
+            @RequestBody(required = true) UserDetailedProfileBody body
+    ) {
+        try {
+            UserDetailedProfileResponse r = userProfileService.updateUserDetailedProfile(request, request.getUserPrincipal().getName(),body);
             return new ResponseEntity<>(r, HttpStatus.OK);
         } catch ( ITRightException | ITParseException e) {
             return new ResponseEntity<>(ActionResult.BADREQUEST(e.getMessage()), HttpStatus.BAD_REQUEST);

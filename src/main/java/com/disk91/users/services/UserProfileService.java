@@ -142,7 +142,7 @@ public class UserProfileService {
      * @return
      * @throws ITRightException
      */
-    public UserDetailedProfileResponse getMyUserDetailedProfile(
+    public UserDetailedProfileResponse getUserDetailedProfile(
             HttpServletRequest req,
             String requestor,
             String user
@@ -164,6 +164,219 @@ public class UserProfileService {
                     log.warn("[users] Searched user does not exists", x);
                     throw new ITRightException("user-profile-user-not-found");
                 }
+                // Audit
+                auditIntegration.auditLog(
+                        ModuleCatalog.Modules.USERS,
+                        ActionCatalog.getActionName(ActionCatalog.Actions.PERSONAL_DATA_ACCESS),
+                        _user.getLogin(),
+                        "User {0} query user profile personal data from {1}",
+                        new String[]{_requestor.getLogin(), Tools.getRemoteIp(req)}
+                );
+            }
+
+            return UserDetailedProfileResponse.of(
+                    _user,
+                    commonConfig.getEncryptionKey(),
+                    commonConfig.getApplicationKey(),
+                    (_requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN))
+            );
+
+        } catch (ITNotFoundException x) {
+            log.error("[users] Requestor does not exists", x);
+            throw new ITRightException("user-profile-user-not-found");
+        }
+    }
+
+    /**
+     * Update user profile information. This can be executed by the user itself or by an admin
+     * @param req
+     * @param requestor
+     * @param user
+     * @return
+     * @throws ITRightException
+     * @throws ITParseException
+     */
+    public UserDetailedProfileResponse updateUserDetailedProfile(
+            HttpServletRequest req,
+            String requestor,
+            UserDetailedProfileBody user
+    ) throws ITRightException, ITParseException {
+
+        try {
+            User _requestor = userCache.getUser(requestor);
+
+            if ( !userCommon.isLegitAccess(requestor,user.getLogin(),true) ) {
+                log.warn("[users] Requestor {} does not have access right to user {} update profile details", requestor, user.getLogin());
+                throw new ITRightException("user-profile-no-access");
+            }
+
+            User _user = _requestor;
+            if ( requestor.compareTo(user.getLogin()) != 0 ) {
+                try {
+                    _user = userCache.getUser(user.getLogin());
+                } catch (ITNotFoundException x){
+                    log.warn("[users] Searched user does not exists", x);
+                    throw new ITRightException("user-profile-user-not-found");
+                }
+            }
+
+            // Update the user profile information
+            try {
+                _user.setKeys(commonConfig.getEncryptionKey(), commonConfig.getApplicationKey());
+                boolean changed = false;
+                if ( Tools.areStringsDifferent(user.getLanguage(), _user.getLanguage()) ) {
+                    _user.setLanguage(user.getLanguage());
+                    changed = true;
+                }
+
+                if ( Tools.areStringsDifferent(user.getProfile().getFirstName(), _user.getEncProfileFirstName()) ) {
+                    _user.setEncProfileFirstName(user.getProfile().getFirstName());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getProfile().getLastName(), _user.getEncProfileLastName()) ) {
+                    _user.setEncProfileLastName(user.getProfile().getLastName());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getProfile().getGender(), _user.getEncProfileGender()) ) {
+                    _user.setEncProfileGender(user.getProfile().getGender());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getProfile().getPhoneNumber(), _user.getEncProfilePhone()) ) {
+                    _user.setEncProfilePhone(user.getProfile().getPhoneNumber());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getProfile().getAddress(), _user.getEncProfileAddress()) ) {
+                    _user.setEncProfileAddress(user.getProfile().getAddress());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getProfile().getCity(), _user.getEncProfileCity()) ) {
+                    _user.setEncProfileCity(user.getProfile().getCity());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getProfile().getZipCode(), _user.getEncProfileZipCode()) ) {
+                    _user.setEncProfileZipCode(user.getProfile().getZipCode());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getProfile().getCountry(), _user.getEncProfileCountry()) ) {
+                    _user.setEncProfileCountry(user.getProfile().getCountry());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getProfile().getTimezone(), _user.getEncProfileTimezone()) ) {
+                    _user.setEncProfileTimezone(user.getProfile().getTimezone());
+                    changed = true;
+                }
+
+                // profile custom fields
+                if( this.updateCustomFields(
+                        _user,
+                        user.getProfile().getCustomFields(),
+                        CustomFieldType.PROFILE,
+                        (_requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN))
+                ) ) {
+                    changed = true;
+                }
+
+                // Billing profile
+                if ( Tools.areStringsDifferent(user.getBillingProfile().getFirstName(), _user.getEncBillingFirstName()) ) {
+                    _user.setEncBillingFirstName(user.getBillingProfile().getFirstName());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getBillingProfile().getLastName(), _user.getEncBillingLastName()) ) {
+                    _user.setEncBillingLastName(user.getBillingProfile().getLastName());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getBillingProfile().getGender(), _user.getEncBillingGender()) ) {
+                    _user.setEncBillingGender(user.getBillingProfile().getGender());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getBillingProfile().getPhoneNumber(), _user.getEncBillingPhone()) ) {
+                    _user.setEncBillingPhone(user.getBillingProfile().getPhoneNumber());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getBillingProfile().getAddress(), _user.getEncBillingAddress()) ) {
+                    _user.setEncBillingAddress(user.getBillingProfile().getAddress());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getBillingProfile().getCity(), _user.getEncBillingCity()) ) {
+                    _user.setEncBillingCity(user.getBillingProfile().getCity());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getBillingProfile().getZipCode(), _user.getEncBillingZipCode()) ) {
+                    _user.setEncBillingZipCode(user.getBillingProfile().getZipCode());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getBillingProfile().getCountry(), _user.getEncBillingCountry()) ) {
+                    _user.setEncBillingCountry(user.getBillingProfile().getCountry());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getBillingProfile().getTimezone(), _user.getEncBillingTimezone()) ) {
+                    _user.setEncBillingTimezone(user.getBillingProfile().getTimezone());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getBillingProfile().getCompanyName(), _user.getEncBillingCompanyName()) ) {
+                    _user.setEncBillingCompanyName(user.getBillingProfile().getCompanyName());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getBillingProfile().getCountryCode(), _user.getEncBillingCountryCode()) ) {
+                    _user.setEncBillingCountryCode(user.getBillingProfile().getCountryCode());
+                    changed = true;
+                }
+                if ( Tools.areStringsDifferent(user.getBillingProfile().getVatNumber(), _user.getEncBillingVatNumber()) ) {
+                    _user.setEncBillingVatNumber(user.getBillingProfile().getVatNumber());
+                    changed = true;
+                }
+
+                // billing custom fields
+                if( this.updateCustomFields(
+                        _user,
+                        user.getBillingProfile().getCustomFields(),
+                        CustomFieldType.BILLING,
+                        (_requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN))
+                ) ) {
+                    changed = true;
+                }
+
+                // update the alert preferences based
+                if ( user.getAlertPreference().isEmailAlert() != _user.getAlertPreference().isEmailAlert() ) {
+                    _user.getAlertPreference().setEmailAlert(user.getAlertPreference().isEmailAlert());
+                    changed = true;
+                }
+                if ( user.getAlertPreference().isSmsAlert() != _user.getAlertPreference().isSmsAlert() ) {
+                    _user.getAlertPreference().setSmsAlert(user.getAlertPreference().isSmsAlert());
+                    changed = true;
+                }
+                if ( user.getAlertPreference().isPushAlert() != _user.getAlertPreference().isPushAlert() ) {
+                    _user.getAlertPreference().setPushAlert(user.getAlertPreference().isPushAlert());
+                    changed = true;
+                }
+
+                // user custom fields
+                if( this.updateCustomFields(
+                        _user,
+                        user.getCustomFields(),
+                        CustomFieldType.GLOBAL,
+                        (_requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN))
+                ) ) {
+                    changed = true;
+                }
+
+                if ( changed ) {
+                    // Save the modified object
+                    userCommon.saveUser(_user);
+
+                    // Audit
+                    auditIntegration.auditLog(
+                            ModuleCatalog.Modules.USERS,
+                            ActionCatalog.getActionName(ActionCatalog.Actions.PROFILE_UPDATE),
+                            _user.getLogin(),
+                            "User {0} update user profile data from {1}",
+                            new String[]{_requestor.getLogin(), Tools.getRemoteIp(req)}
+                    );
+
+                }
+
+            } finally {
+                _user.cleanKeys();
             }
 
             return UserDetailedProfileResponse.of(
@@ -180,6 +393,103 @@ public class UserProfileService {
     }
 
 
+    // ===============================================================================
+    // Custom Fields
+    // ===============================================================================
+    protected enum CustomFieldType {
+        PROFILE,
+        BILLING,
+        GLOBAL
+    }
+
+    /**
+     * We will update the custom fields for a specific category. The goal is to delete those that should not exist, modify those that need to be changed, and add those that need to be added.
+     * However, some custom fields cannot be modified by a user. They must therefore not be lost: these are the custom fields of type `basic`, `clear`, or `hide`.
+     * An administrator can modify all custom fields. Returns true is the target structure is different from the original one.
+     * @param u
+     * @param modifiedFields
+     * @param type
+     * @param isAdmin
+     * @throws ITParseException
+     */
+    protected boolean updateCustomFields(
+            User u, // with key set
+            List<CustomField> modifiedFields,
+            CustomFieldType type,
+            boolean isAdmin
+    ) throws ITParseException {
+
+        boolean changed = false;
+        ArrayList<CustomField> originalCF = new ArrayList<>();
+        ArrayList<CustomField> targetCF = new ArrayList<>();
+        originalCF = switch (type) {
+            case PROFILE -> u.getEncProfileCustomFields();
+            case BILLING -> u.getEncBillingCustomFields();
+            case GLOBAL -> u.getEncCustomFields();
+        };
+
+        // copy the field a user is not authorized to modify and list the fields to be removed
+        for  (CustomField cf : originalCF) {
+            if ( !isAdmin && (
+                    cf.getName().startsWith("basic_") || cf.getName().startsWith("cbasic_")
+                    || cf.getName().startsWith("hide_") || cf.getName().startsWith("chide_")
+                    || cf.getName().startsWith("clear_")
+                 )
+            ) {
+                targetCF.add(cf);
+            } else {
+                // check is still existing in the modified fields
+                boolean found = false;
+                for ( CustomField mcf : modifiedFields ) {
+                    if ( mcf.getName().compareTo(cf.getName()) == 0 ) {
+                        found = true;
+                        break;
+                    }
+                }
+                if ( !found ) changed = true;
+            }
+        }
+
+        // copy the other fields
+        for ( CustomField cf : modifiedFields ) {
+            if ( !isAdmin && (
+                    cf.getName().startsWith("basic_") || cf.getName().startsWith("cbasic_")
+                    || cf.getName().startsWith("hide_") || cf.getName().startsWith("chide_")
+                    || cf.getName().startsWith("clear_")
+                 )
+            ) {
+                // skip this field, user is not allowed to modify it
+                continue;
+            }
+            // search for the field in the original list
+            boolean found = false;
+            for ( CustomField ocf : originalCF ) {
+                if ( ocf.getName().compareTo(cf.getName()) == 0 ) {
+                    found = true;
+                    // check if the value has changed
+                    if ( Tools.areStringsDifferent(ocf.getValue(), cf.getValue()) ) {
+                        changed = true;
+                    }
+                    break;
+                }
+            }
+            if ( !found ) changed = true;
+            targetCF.add(cf);
+        }
+
+        switch (type) {
+            case PROFILE:
+                u.setEncProfileCustomFields(targetCF);
+                    break;
+            case BILLING:
+                u.setEncBillingCustomFields(targetCF);
+                break;
+            case GLOBAL:
+                u.setEncCustomFields(targetCF);
+                break;
+        }
+        return changed;
+    }
 
 
     /**

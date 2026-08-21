@@ -1,5 +1,5 @@
 /*
- * Copyright (c) - Paul Pinault (aka disk91) - 2024.
+ * Copyright (c) - Paul Pinault (aka disk91) - 2026.
  *
  *    Permission is hereby granted, free of charge, to any person obtaining a copy of this software
  *    and associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -188,7 +188,7 @@ public class UserDetailedProfileResponse {
             u.setKeys(encryptionKey, applicationKey);
             r.setEmail(u.getEncEmail());
             r.setLogin(u.getLogin());
-            r.setLanguage(u.getLanguage());
+            r.setLanguage((u.getLanguage() != null )?u.getLanguage():"");
             r.setCustomFields(new ArrayList<>());
             if ( u.getCustomFields() != null) {
                 for (CustomField cf : u.getCustomFields()) {
@@ -242,6 +242,7 @@ public class UserDetailedProfileResponse {
             r.getProfile().setZipCode(u.getEncProfileZipCode());
             r.getProfile().setCountry(u.getEncProfileCountry());
             r.getProfile().setTimezone(u.getEncProfileTimezone());
+            r.getProfile().setCustomFields(new ArrayList<>());
             if ( u.getProfile().getCustomFields() != null) {
                 for (CustomField cf : u.getEncProfileCustomFields()) {
                     if ( !isRequesterAdmin && ( cf.getName().startsWith("hide_") || cf.getName().startsWith("chide_")) ) continue;
@@ -260,6 +261,7 @@ public class UserDetailedProfileResponse {
             r.getBillingProfile().setZipCode(u.getEncBillingZipCode());
             r.getBillingProfile().setCountry(u.getEncBillingCountry());
             r.getBillingProfile().setTimezone(u.getEncBillingTimezone());
+            r.getBillingProfile().setCustomFields(new ArrayList<>());
             if ( u.getBillingProfile().getCustomFields() != null) {
                 for (CustomField cf : u.getEncBillingCustomFields()) {
                     if ( !isRequesterAdmin && ( cf.getName().startsWith("hide_") || cf.getName().startsWith("chide_")) ) continue;
