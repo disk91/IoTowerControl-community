@@ -220,6 +220,10 @@ public class UserProfileService {
                 }
             }
 
+            if ( user.getCustomFields() == null ) user.setCustomFields(new ArrayList<>());
+            if ( user.getProfile().getCustomFields() == null ) user.getProfile().setCustomFields(new ArrayList<>());
+            if ( user.getBillingProfile().getCustomFields() == null ) user.getBillingProfile().setCustomFields(new ArrayList<>());
+
             // Update the user profile information
             try {
                 _user.setKeys(commonConfig.getEncryptionKey(), commonConfig.getApplicationKey());

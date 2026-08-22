@@ -995,12 +995,14 @@ public class User implements CloneableObject<User> {
 
     public ArrayList<CustomField> getEncProfileCustomFields() throws ITParseException {
         ArrayList<CustomField> customFields = new ArrayList<>();
-        for ( CustomField cf : this.profile.getCustomFields() ) {
-            CustomField _cf = new CustomField();
-            _cf.setName(cf.getName());
-            _cf.setValue(EncryptionHelper.decrypt(cf.getValue(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
-            customFields.add(_cf);
-        }
+        if ( this.profile.getCustomFields() != null ) {
+            for (CustomField cf : this.profile.getCustomFields()) {
+                CustomField _cf = new CustomField();
+                _cf.setName(cf.getName());
+                _cf.setValue(EncryptionHelper.decrypt(cf.getValue(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
+                customFields.add(_cf);
+            }
+        } else this.profile.setCustomFields(new ArrayList<>());
         return customFields;
     }
 
@@ -1124,12 +1126,14 @@ public class User implements CloneableObject<User> {
 
     public ArrayList<CustomField> getEncBillingCustomFields() throws ITParseException {
         ArrayList<CustomField> customFields = new ArrayList<>();
-        for ( CustomField cf : this.billingProfile.getCustomFields() ) {
-            CustomField _cf = new CustomField();
-            _cf.setName(cf.getName());
-            _cf.setValue(EncryptionHelper.decrypt(cf.getValue(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
-            customFields.add(_cf);
-        }
+        if ( this.billingProfile.getCustomFields() != null ) {
+            for (CustomField cf : this.billingProfile.getCustomFields()) {
+                CustomField _cf = new CustomField();
+                _cf.setName(cf.getName());
+                _cf.setValue(EncryptionHelper.decrypt(cf.getValue(), IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
+                customFields.add(_cf);
+            }
+        } else this.billingProfile.setCustomFields(new ArrayList<>());
         return customFields;
     }
 

@@ -190,6 +190,7 @@ public class UserProfile implements CloneableObject<UserProfile> {
     // === CLONE ===
 
     public UserProfile clone() {
+        // In case of modification, we need to odify UserBillingProfile.clone() as well
         UserProfile u = new UserProfile();
         u.setFirstName(this.firstName);
         u.setLastName(this.lastName);

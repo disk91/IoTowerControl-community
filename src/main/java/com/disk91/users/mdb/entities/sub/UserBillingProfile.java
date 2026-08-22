@@ -1,6 +1,9 @@
 package com.disk91.users.mdb.entities.sub;
 
+import com.disk91.common.tools.CustomField;
 import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.util.ArrayList;
 
 public class UserBillingProfile extends UserProfile {
 
@@ -59,6 +62,23 @@ public class UserBillingProfile extends UserProfile {
 
     public UserBillingProfile clone() {
         UserBillingProfile u = new UserBillingProfile();
+        u.setFirstName(this.getFirstName());
+        u.setLastName(this.getLastName());
+        u.setGender(this.getGender());
+        u.setPhoneNumber(this.getPhoneNumber());
+        u.setPhoneHash(this.getPhoneHash());
+        u.setAddress(this.getAddress());
+        u.setCity(this.getCity());
+        u.setZipCode(this.getZipCode());
+        u.setCountry(this.getCountry());
+        u.setTimezone(this.getTimezone());
+        if (this.getCustomFields() != null) {
+            ArrayList<CustomField> cf = new ArrayList<>();
+            for (CustomField c : this.getCustomFields()) {
+                cf.add(c.clone());
+            }
+            u.setCustomFields(cf);
+        }
         u.setCompanyName(this.companyName);
         u.setCountryCode(this.countryCode);
         u.setVatNumber(this.vatNumber);
