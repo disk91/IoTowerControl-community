@@ -15,7 +15,7 @@ GET /users/1.0/profile/basic
 Authorization: Bearer <token>   (ROLE_LOGIN_COMPLETE required, API sessions excluded)
 ```
 
-### Response — `UserBasicProfileResponse`
+### Response — `UserDetailedProfileResponse`
 
 ```json
 {
@@ -64,14 +64,19 @@ Authorization: Bearer <token>   (ROLE_LOGIN_COMPLETE required, API sessions excl
 
 | Prefix | Encrypted | Visibility |
 |---|---|---|
-| `basic_` | yes | Basic profile + detailed profile (all users) |
-| `cbasic_` | no | Basic profile + detailed profile (all users) |
-| `hide_` | yes | Detailed profile — **admin only** |
-| `chide_` | no | Detailed profile — **admin only** |
-| *(other)* | yes | Detailed profile (all users) |
+| `basic_` | yes | Basic profile + detailed profile (all users) — **read-only in UI, cannot be deleted** |
+| `cbasic_` | no | Basic profile + detailed profile (all users) — **read-only in UI, cannot be deleted** |
+| `clear_` | no | Detailed profile (all users) — **read-only in UI, cannot be deleted** |
+| `hide_` | yes | Detailed profile — **admin only, must be hidden from non-admin UI** |
+| `chide_` | no | Detailed profile — **admin only, must be hidden from non-admin UI** |
+| *(other)* | yes | Detailed profile (all users) — **fully editable, can be added and deleted** |
 
 This convention applies equally at the root level, inside `profile.customFields`,
 and inside `billingProfile.customFields`.
+
+**Critical rule for saving**: hidden fields (`hide_`, `chide_`) are filtered from
+display but **must be re-injected from the last server response into every save body**
+to avoid the backend deleting them. See [Section 5 — Save flow](#5-updating-the-detailed-profile----put-users10profiledetailed).
 
 ### Frontend representation
 
@@ -136,7 +141,7 @@ When the requester is an administrator, additional fields are populated (see bel
     "city":        "Paris",
     "zipCode":     "75001",
     "country":     "FR",
-    "timezone":    "Europe/Paris",
+    "timezone":    "CET",
     "customFields": [
       { "name": "profile_nickname", "value": "Johnny" }
     ]
@@ -147,11 +152,11 @@ When the requester is an administrator, additional fields are populated (see bel
     "lastName":    "Doe",
     "gender":      "Mr",
     "phoneNumber": "+33601020304",
-    "address":     "123 Main St",
+    "address":     "123 Main St\nBuilding B",
     "city":        "Paris",
     "zipCode":     "75001",
     "country":     "FR",
-    "timezone":    "Europe/Paris",
+    "timezone":    "CET",
     "companyName": "Acme Inc.",
     "countryCode": "FR",
     "vatNumber":   "FR12345678901",
@@ -174,22 +179,12 @@ When the requester is an administrator, additional fields are populated (see bel
 }
 ```
 
+> **Note on `timezone`**: the field stores a timezone **abbreviation** (e.g. `CET`,
+> `EST`, `UTC`), not an IANA name. Use `ToolsTimezoneSelect` which is built around
+> the project's `~/config/timezones.ts` abbreviation list.
+
 Fields that are `null` in the self-request are populated when the requester is an admin
 (see [Admin-only fields](#admin-only-fields) below).
-
-### Field notes — common
-
-| Field | Description |
-|---|---|
-| `language` | 2-letter language code. Editable. |
-| `twoFAConfig` | One of `NONE`, `EMAIL`, `SMS`, `AUTHENTICATOR`. Editable via `/profile/2fa`. |
-| `lastLoginMs` | Read-only. Epoch ms of last successful login. |
-| `loginCount` | Read-only. Total successful logins since account creation. |
-| `registrationDate` | Read-only. Epoch ms of account creation. |
-| `alertPreference` | Three booleans: `emailAlert`, `smsAlert`, `pushAlert`. Editable. |
-| `profile` | Personal identity and address. See [Profile tab](#tab-1--personal-profile). |
-| `billingProfile` | Billing identity, address and company info. Extends `profile` fields. See [Billing tab](#tab-2--billing-information). |
-| `customFields` | Root-level custom fields. Filtered by prefix rules. See [Custom fields tab](#tab-4--custom-fields). |
 
 ### Admin-only fields
 
@@ -211,151 +206,223 @@ is not an administrator. When the requester is an admin they are populated:
 
 ## 3. Detailed Profile — Frontend page layout
 
-The detailed profile page is organised in tabs. The same layout is used whether the
-viewer is the user themselves or an administrator — admin-only sections are simply
-hidden when the fields are null.
+The detailed profile page lives at `app/pages/front/private/profile/` and is split into
+**separate sub-pages** (not a single component with tab state). A `UDashboardToolbar` +
+`UNavigationMenu` in the parent `profile.vue` provides the tab links. Each sub-page
+is a standalone Vue file:
 
-### Tab 1 — Personal Profile
+```
+app/pages/front/private/profile/
+  index.vue      ← General information (name, language, mobile, basic profile)
+  personal.vue   ← Personal data tab
+  billing.vue    ← Billing information tab
+  security.vue   ← Security / 2FA tab
+  rights.vue     ← Roles and rights (read-only)
+  danger.vue     ← Danger zone (account deletion)
+```
 
-Editable personal identity and contact information.
+### Shared data loading pattern
 
-**Identity section**
-| UI label | JSON path | Input type |
-|---|---|---|
-| First name | `profile.firstName` | text |
-| Last name | `profile.lastName` | text |
-| Gender / Title | `profile.gender` | text or select |
-| Language | `language` | select (ISO codes) |
+Both `personal.vue` and `billing.vue` share one `useAsyncData` call with the key
+`'user-detailed-profile'`. This ensures a single network request regardless of which
+tab the user visits first.
 
-**Contact section**
-| UI label | JSON path | Input type |
-|---|---|---|
-| Email | `email` | email (read-only for self, editable for admin) |
-| Mobile phone | `profile.phoneNumber` | tel (E.164) |
-| Country code | `profile.country` | select (ISO 2-char) |
-| Timezone | `profile.timezone` | select (IANA tz) |
+```ts
+const { data: detailedProfile, pending, error } = useAsyncData<UserDetailedProfileResponse>(
+    'user-detailed-profile',
+    async () => {
+        const res = await $apiBackendUsers.getUserDetailedProfile();
+        if (res.success) return res.success;
+        throw new Error(res.error?.message ?? 'unknownError');
+    }
+);
+```
 
-**Address section**
-| UI label | JSON path | Input type |
-|---|---|---|
-| Address | `profile.address` | text |
-| City | `profile.city` | text |
-| Zip code | `profile.zipCode` | text |
-| Country | `profile.country` | select |
+After a successful save, **always call `refreshNuxtData('user-detailed-profile')`** to
+invalidate the cache so both tabs reload the fresh server state.
 
-**Preferences section**
-| UI label | JSON path | Input type |
-|---|---|---|
-| Email alerts | `alertPreference.emailAlert` | toggle |
-| SMS alerts | `alertPreference.smsAlert` | toggle |
-| Push alerts | `alertPreference.pushAlert` | toggle |
-| 2FA method | `twoFAConfig` | select / wizard |
+### One-time init flag pattern
 
-**Profile custom fields** (at the bottom of the tab)
+Local form state (reactive objects and refs) is initialised from the server response
+via a `watch`. To prevent the watch from overwriting user edits when the reactive ref
+updates for other reasons, use a plain (non-reactive) boolean flag:
 
-Render `profile.customFields` as a list of label/value pairs. Apply visibility
-rules: hide entries prefixed `hide_` or `chide_` when the viewer is not an admin.
+```ts
+let personalLoaded = false;
 
-**"Copy to billing" button**
+watch(() => detailedProfile.value, (d) => {
+    if (!d || personalLoaded) return;
+    personalLoaded = true;
+    // populate local state from d
+}, { immediate: true });
 
-A single click copies the following fields from `profile` into `billingProfile`:
-`firstName`, `lastName`, `gender`, `phoneNumber`, `address`, `city`, `zipCode`,
-`country`, `timezone`. The copy is local only; the user must save the billing tab
-to persist it.
+// In the save function, reset before refreshNuxtData so the watch re-fires:
+personalLoaded = false;
+await refreshNuxtData('user-detailed-profile');
+```
 
----
-
-### Tab 2 — Billing Information
-
-Editable billing identity, company details and billing address. This tab mirrors
-Tab 1 but operates on `billingProfile` fields, with the addition of company data.
-
-**Company section**
-| UI label | JSON path | Input type |
-|---|---|---|
-| Company name | `billingProfile.companyName` | text |
-| Country code | `billingProfile.countryCode` | select (ISO 2-char) |
-| VAT / Tax number | `billingProfile.vatNumber` | text |
-
-**Identity section** — same fields as Tab 1 but from `billingProfile.*`
-
-**Address section** — same fields as Tab 1 but from `billingProfile.*`
-
-**Billing custom fields** (at the bottom of the tab)
-
-Render `billingProfile.customFields` with the same visibility rules as above.
+Use `personalLoaded` in `personal.vue` and `billingLoaded` in `billing.vue`.
 
 ---
 
-### Tab 3 — Account Information
+### Tab — Personal Data (`personal.vue`)
 
-Read-only summary available to all users. Admin section is shown only when the
-admin-only fields are non-null.
+**Save button**: Place a `UButton` (icon `i-lucide-save`) at the **top** of the page
+in a `UPageCard` with `orientation="horizontal"`, matching the General Info pattern.
 
-**Activity** (all users)
-| UI label | JSON path |
-|---|---|
-| Login identifier | `login` |
-| Registration date | `registrationDate` (formatted date) |
-| Last login | `lastLoginMs` (formatted date) |
-| Login count | `loginCount` |
+**Field order and input types** (all inside `UFormField` rows with
+`class="flex max-sm:flex-col justify-between items-start gap-4"`):
 
-**Security** (all users)
-| UI label | JSON path |
-|---|---|
-| 2FA method | `twoFAConfig` |
+**Profile details section**
+| UI label | JSON path | Input | Notes |
+|---|---|---|---|
+| Title | `profile.gender` | `UInput` | Free text, editable |
+| Last name | `profile.lastName` | `UInput disabled` | Read-only — not editable by user |
+| First name | `profile.firstName` | `UInput disabled` | Read-only — not editable by user |
+| Time zone | `profile.timezone` | `ToolsTimezoneSelect` | v-model = abbreviation string |
+| Street address | `profile.address` | `UTextarea :rows="3"` | Multi-line |
+| Zip / Postal code | `profile.zipCode` | `UInput` | **ZIP before city** |
+| City | `profile.city` | `UInput` | |
+| Country | `profile.country` | `ToolsCountrySelect` | v-model = ISO-2 code |
 
-**Account status** (admin only — render only when fields are non-null)
-| UI label | JSON path |
-|---|---|
-| Active | `active` (boolean badge) |
-| Locked | `locked` (boolean badge) |
-| Password expired | `passwordExpired` (boolean badge) |
-| Registration IP | `registrationIp` |
-| ToS accepted | `conditionValidation` (boolean) |
-| ToS acceptance date | `conditionValidationDate` (formatted date) |
-| ToS version | `conditionValidationVersion` |
-
----
-
-### Tab 4 — Custom Fields
-
-Displays the root-level `customFields` array (not `profile.customFields` nor
-`billingProfile.customFields` — those are shown in their respective tabs).
-
-These fields are application-specific extensions. Render them as a generic
-key/value list. Apply visibility rules:
-
-- Skip entries whose name starts with `hide_` or `chide_` when the viewer is not
-  an administrator.
-- The `basic_` and `cbasic_` entries are visible to all; label them accordingly
-  (they also appear in the basic profile).
-
----
-
-### Tab 5 — API Keys (admin only)
-
-Shown only when `apiKeys` is non-null (i.e. the viewer is an administrator).
-
-Display the list of `apiKeys` as a table with metadata columns (name, creation date,
-last-used date, expiry). Secret values are never returned by the API and must never
-be displayed.
-
----
-
-## 4. Update endpoints
-
-| Action | Endpoint | Body |
+**Alert preferences section**
+| UI label | JSON path | Input |
 |---|---|---|
-| Update basic info (name, phone, language) | `PUT /users/1.0/profile/basic` | `UserBasicProfileBody` |
-| Update detailed profile (profile + billing + alerts + custom fields) | `PUT /users/1.0/profile/detailed` | `UserDetailedProfileBody` |
-| Upsert a root custom field | `PUT /users/1.0/profile/customfield` | `{ name, value }` |
-| Change password | `PUT /users/1.0/profile/password/change` | `{ password }` |
-| Configure 2FA | `PUT /users/1.0/profile/2fa` | `UserTwoFaBody` |
+| Email alerts | `alertPreference.emailAlert` | `USwitch` |
+| SMS alerts | `alertPreference.smsAlert` | `USwitch` |
+| Push alerts | `alertPreference.pushAlert` | `USwitch` |
 
-`PUT /users/1.0/profile/basic` body fields: `login` (target, optional for self),
-`firstName`, `lastName`, `mobileNumber`, `isoCountryCode`, `language`, `customFields`
-(only `basic_` / `cbasic_` entries are accepted here).
+**Profile custom fields section** (`profile.customFields`)
+
+Render as a list of `UFormField` rows. Filter: hide entries where name starts with
+`hide_` or `chide_`. System fields (`basic_`, `cbasic_`, `clear_`) are shown
+read-only (disabled `UInput`) with no delete button. All other fields are editable
+with a delete button. Provide an "add new field" row at the bottom.
+
+**Global custom fields section** (root `customFields`)
+
+Same CRUD pattern as profile custom fields. Same visibility/editability rules.
+
+---
+
+### Tab — Billing Information (`billing.vue`)
+
+**Save button**: Same top-of-page pattern as personal tab.
+
+**"Import personal data" button**: `UButton` (icon `i-lucide-copy`, variant `soft`)
+placed in the `UPageCard` header of the Billing Contact section. Clicking it copies
+`profile.*` fields into the local billing reactive state **and** updates the phone
+input's seed E.164 value, forcing the phone component to re-initialise via a `:key`
+counter increment. This is a local-only operation; the user must click Save to persist.
+
+**Company information section** — ALL fields are editable (not read-only):
+| UI label | JSON path | Input |
+|---|---|---|
+| Company name | `billingProfile.companyName` | `UInput` |
+| VAT / Tax number | `billingProfile.vatNumber` | `UInput` |
+| Billing country | `billingProfile.countryCode` | `ToolsCountrySelect` |
+
+**Billing contact section**
+| UI label | JSON path | Input | Notes |
+|---|---|---|---|
+| Title | `billingProfile.gender` | `UInput` | |
+| First name | `billingProfile.firstName` | `UInput` | |
+| Last name | `billingProfile.lastName` | `UInput` | |
+| Phone number | `billingProfile.phoneNumber` | `ToolsPhoneNumberInput` | See phone pattern below |
+
+**Billing address section**
+| UI label | JSON path | Input | Notes |
+|---|---|---|---|
+| Street address | `billingProfile.address` | `UTextarea :rows="3"` | Multi-line |
+| Zip / Postal code | `billingProfile.zipCode` | `UInput` | **ZIP before city** |
+| City | `billingProfile.city` | `UInput` | |
+| Country | `billingProfile.country` | `ToolsCountrySelect` | |
+| Time zone | `billingProfile.timezone` | `ToolsTimezoneSelect` | |
+
+**Billing custom fields section** (`billingProfile.customFields`)
+
+Same CRUD pattern as personal tab custom fields.
+
+---
+
+## 4. Reusable components
+
+### `ToolsCountrySelect`
+
+`app/components/tools/CountrySelect.vue` — country selector with flags.
+
+- **v-model**: ISO 3166-1 alpha-2 string (e.g. `"FR"`), empty string when unset.
+- Data source: `libphonenumber-js` `getCountries()` — same library used by
+  `ToolsPhoneNumberInput`. Country names via `Intl.DisplayNames(['en'], { type: 'region' })`.
+- Uses `useAsyncData('country-select-list', ...)` to build and cache the sorted list.
+- Displays flag icon (`flagpack:xx`) + country name + ISO code in trigger and items.
+- Searchable.
+- i18n namespace: `countries.*` (file `i18n/en/countries.json` and `i18n/fr/countries.json`,
+  registered in `nuxt.config.ts` `fileNames`).
+
+Usage:
+```html
+<ToolsCountrySelect v-model="profile.country" class="w-70" />
+```
+
+> **Width note**: do NOT add `w-full` inside `CountrySelect` root div — it conflicts
+> with the `w-70` applied from the parent because Tailwind places `w-full` after
+> numeric width utilities in its CSS output, making it win the cascade.
+> The root div uses only `min-w-0 overflow-hidden`; the `USelectMenu` inside uses
+> `class="w-full"` to fill whatever width the parent sets.
+
+### `ToolsTimezoneSelect`
+
+`app/components/tools/TimezoneSelect.vue` — timezone selector.
+
+- **v-model**: timezone abbreviation string (e.g. `"CET"`), empty string when unset.
+- Data source: `~/config/timezones.ts`.
+- Shows full label (`(UTC+1) CET — Paris, Berlin…`) truncated inside the trigger via
+  the `#label` slot; same label shown untruncated in the dropdown items.
+- The `#trailing` slot provides a clear (×) button (`.stop` to prevent dropdown open).
+- Same width caveat as `CountrySelect` — no `w-full` on root div.
+- i18n namespace: `timezones.*` (`i18n/en/timezones.json` / `i18n/fr/timezones.json`).
+
+### `ToolsPhoneNumberInput`
+
+`app/components/tools/PhoneNumberInput.vue` — international phone input.
+
+- **v-model**: `PhoneNumberInputState` object (contains `e164`, `isValid`,
+  `countryCode`, `nationalNumber`, `phoneNumber`, …).
+- Props: `e164` (string, initial E.164 value) and `isoCountry` (string, default country).
+- The component initialises **once** from props in `setup()`; it does not react to
+  prop changes after mount. To force re-initialisation (e.g. after "Import personal
+  data"), increment a `:key` counter bound to the component.
+
+```ts
+const billingPhoneE164 = ref('');    // seed for (re-)initialisation
+const billingPhoneKey  = ref(0);     // increment to force remount
+const billingPhone     = ref<PhoneNumberInputState | null>(null);  // emitted state
+
+// In loadFromBillingProfile:
+billingPhoneE164.value = d.billingProfile?.phoneNumber ?? '';
+billingPhoneKey.value++;
+
+// In importPersonalData:
+billingPhoneE164.value = d.profile?.phoneNumber ?? '';
+billingPhoneKey.value++;
+```
+
+```html
+<ToolsPhoneNumberInput
+    :key="billingPhoneKey"
+    v-model="billingPhone"
+    :e164="billingPhoneE164"
+    class="w-70"
+/>
+```
+
+When building the save body:
+```ts
+const phoneNumber = billingPhone.value?.isValid
+    ? (billingPhone.value.e164 ?? '')
+    : (billingPhone.value?.phoneNumber ?? billingPhoneE164.value);
+```
 
 ---
 
@@ -367,9 +434,6 @@ be displayed.
 PUT /users/1.0/profile/detailed
 Authorization: Bearer <token>   (ROLE_LOGIN_COMPLETE, API sessions excluded)
 ```
-
-A user updates their own profile. An administrator can update any user's profile by
-including the optional `login` field in the body.
 
 ### Request body — `UserDetailedProfileBody`
 
@@ -394,7 +458,7 @@ including the optional `login` field in the body.
     "city":        "Paris",
     "zipCode":     "75001",
     "country":     "FR",
-    "timezone":    "Europe/Paris",
+    "timezone":    "CET",
     "customFields": [
       { "name": "profile_nickname", "value": "Johnny" }
     ]
@@ -405,11 +469,11 @@ including the optional `login` field in the body.
     "lastName":    "Doe",
     "gender":      "Mr",
     "phoneNumber": "+33601020304",
-    "address":     "123 Main St",
+    "address":     "123 Main St\nBuilding B",
     "city":        "Paris",
     "zipCode":     "75001",
     "country":     "FR",
-    "timezone":    "Europe/Paris",
+    "timezone":    "CET",
     "companyName": "Acme Inc.",
     "countryCode": "FR",
     "vatNumber":   "FR12345678901",
@@ -423,85 +487,124 @@ including the optional `login` field in the body.
 }
 ```
 
-### Body field reference
+### Mandatory fields
 
-| Field | Required | Description |
-|---|---|---|
-| `login` | No | Target user login hash. Omit for self. **Admin only** — ignored when the caller is not an admin. |
-| `language` | **Yes** | 2-letter language code (`en`, `fr`, …). |
-| `alertPreference` | **Yes** | Three booleans controlling notification channels. |
-| `profile` | **Yes** | Personal identity and address block (see `UserProfile` fields below). |
-| `billingProfile` | **Yes** | Billing identity, address and company block (extends `profile`). |
-| `customFields` | No | Root-level custom fields (key/value list). Existing fields not listed are left unchanged. |
+- `login` — the user's login hash (`appStore.getUserLogin()`). **Required** even for
+  self-updates.
+- `language` — must always be sent.
+- `alertPreference` — all three booleans required.
+- `profile` — full object required, even when only billing fields changed.
+- `billingProfile` — full object required, even when only personal fields changed.
 
-#### `profile` / `billingProfile` shared fields
+When saving from the personal tab, pass `billingProfile` through from
+`detailedProfile.value.billingProfile`. When saving from billing, pass `profile`
+through from `detailedProfile.value.profile`.
 
-| Field | Type | Description |
-|---|---|---|
-| `firstName` | string | First name (encrypted at rest). |
-| `lastName` | string | Last name (encrypted at rest). |
-| `gender` | string | Free text title / salutation (e.g. `Mr`, `Ms`). |
-| `phoneNumber` | string | E.164 phone number (e.g. `+33601020304`). |
-| `address` | string | Street address. |
-| `city` | string | City. |
-| `zipCode` | string | Postal code. |
-| `country` | string | ISO 3166-1 alpha-2 country code. |
-| `timezone` | string | IANA timezone (e.g. `Europe/Paris`). |
-| `customFields` | list | Custom fields scoped to this profile block. |
+### Hidden custom field passthrough rule
 
-#### `billingProfile` additional fields
+The `customFields` arrays in `profile`, `billingProfile`, and at root level use a
+**replace-all** strategy on the server. Hidden fields (`hide_`, `chide_`) are never
+shown in the UI but **must** be included in the save body or they will be deleted.
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `companyName` | string | **Yes** | Legal company name. |
-| `countryCode` | string | **Yes** | ISO 2-char country code for billing jurisdiction. |
-| `vatNumber` | string | No | VAT / tax registration number. |
+Always merge them back from the last server response:
+
+```ts
+// profile custom fields
+customFields: [
+    ...(d.profile?.customFields ?? []).filter(cf => isHiddenField(cf.name)), // re-inject hidden
+    ...profileCf.value,   // local visible draft
+].map(cf => ({ name: cf.name, value: cf.value ?? '' })),
+
+// billing custom fields
+customFields: [
+    ...(d.billingProfile?.customFields ?? []).filter(cf => isHiddenField(cf.name)),
+    ...billingCf.value,
+].map(cf => ({ name: cf.name, value: cf.value ?? '' })),
+
+// global (root) custom fields — when tabs don't edit them, pass through entirely
+customFields: (d.customFields ?? []).map(cf => ({ name: cf.name, value: cf.value ?? '' })),
+```
+
+### Custom field CRUD rules
+
+```ts
+const isSystemField = (name: string) =>
+    name.startsWith('basic_') || name.startsWith('cbasic_') || name.startsWith('clear_');
+
+const isHiddenField = (name: string) =>
+    name.startsWith('hide_') || name.startsWith('chide_');
+
+// Hidden fields: never show in UI, always pass through in save body
+// System fields: show read-only, no delete button, value editable only by admin
+// Other fields: fully editable, delete button visible
+const canDeleteCf = (name: string) => !isSystemField(name) && !isHiddenField(name);
+const canAddCf    = (name: string) => name.trim().length > 0 && !isSystemField(name) && !isHiddenField(name);
+```
+
+Initialise local CF draft arrays by **excluding** hidden fields (they travel separately):
+
+```ts
+function initProfileCf(d: UserDetailedProfileResponse) {
+    profileCf.value = (d.profile?.customFields ?? [])
+        .filter(cf => !isHiddenField(cf.name))
+        .map(cf => ({ name: cf.name, value: cf.value ?? '' }));
+}
+```
 
 ### Response
 
-Returns `UserDetailedProfileResponse` (same structure as the GET endpoints).
-HTTP 200 on success, 400 on parse error, 403 on insufficient rights.
-
-### Read-only fields (never sent in the body)
-
-The following fields from `UserDetailedProfileResponse` cannot be updated via this
-endpoint and must not be included in the form submission: `email`, `login` (root),
-`twoFAConfig`, `lastLoginMs`, `loginCount`, `registrationDate`, `registrationIp`,
-`passwordExpired`, `active`, `locked`, `conditionValidation`, `conditionValidationDate`,
-`conditionValidationVersion`, `apiKeys`.
-
-Use the dedicated endpoints listed in [Section 4](#4-update-endpoints) for 2FA and
-password changes.
+Returns `UserDetailedProfileResponse`. HTTP 200 on success, 400 on validation error,
+403 on insufficient rights.
 
 ### Frontend save flow
 
-1. Load the detailed profile via `GET /users/1.0/profile/detailed` (or the `/{login}`
-   admin variant) and populate all form fields.
-2. The user edits one or more tabs.
-3. On "Save", collect all form values — even unchanged ones — and POST the full body to
-   `PUT /users/1.0/profile/detailed`. The server replaces all editable fields.
-4. On success (HTTP 200), reload the profile and refresh the basic profile cache so the
-   header reflects any name/language changes immediately.
-5. On HTTP 400, surface the server `message` slug in an i18n-translated error banner.
+1. User edits a tab and clicks **Save** (button at the top of the page).
+2. Build the full `UserDetailedProfileBody`:
+  - Include `login` from `appStore.getUserLogin()`.
+  - Pass the **other** tab's data through from `detailedProfile.value.*` untouched.
+  - Merge hidden CFs back into all three `customFields` arrays.
+3. Call `$apiBackendUsers.putUserDetailedProfile(body)`.
+4. On error: show inline error message.
+5. On success:
+  - Reset the `loaded` flag (`personalLoaded = false` / `billingLoaded = false`).
+  - Call `refreshNuxtData('user-detailed-profile')` — the watcher fires and
+    re-populates local state from the fresh server data.
+  - Show a success toast (`useToast()`).
 
 ---
 
-## 6. Key implementation notes for the frontend
+## 6. Update endpoints summary
 
-- **Always load the detailed profile before opening the page.** Do not reuse the
-  basic profile data — it only carries a subset of the fields and custom fields.
-- **Null-guard every admin-only field.** Check `!= null` before rendering any of
-  `registrationIp`, `passwordExpired`, `active`, `locked`, `conditionValidation`,
-  `conditionValidationDate`, `conditionValidationVersion`, `apiKeys`.
-- **The "copy to billing" action is client-side only** until the user explicitly
-  saves Tab 2. Avoid auto-saving.
-- **Custom field labels** are not provided by the API; the frontend is responsible
-  for mapping `name` slugs to human-readable labels via an i18n table or a
-  configuration file.
-- **Prefix filtering** must be applied client-side as a safety measure, even though
-  the server already filters `hide_` / `chide_` fields for non-admin users.
-  This prevents accidental display of fields added in future API versions.
-- **Phone numbers** are stored and returned in E.164 format. Use a phone-number
-  formatting library for display; submit in E.164 on save.
-- **Epoch milliseconds** must be converted to human-readable dates using the user's
-  `timezone` and `language` for formatting.
+| Action | Endpoint | Body |
+|---|---|---|
+| Update basic info (name, phone, language) | `PUT /users/1.0/profile/basic` | `UserBasicProfileBody` |
+| Update detailed profile | `PUT /users/1.0/profile/detailed` | `UserDetailedProfileBody` |
+| Change password | `PUT /users/1.0/profile/password/change` | `{ password }` |
+| Configure 2FA | `PUT /users/1.0/profile/2fa` | `UserTwoFaBody` |
+
+---
+
+## 7. Key implementation notes
+
+- **Always include `login`** in the `PUT /users/1.0/profile/detailed` body even for
+  self-updates. Omitting it causes a backend error.
+- **Send the entire body** on every save — the server replaces all editable fields.
+  Do not send partial updates.
+- **ZIP code before city** in all address forms.
+- **Title (gender) before last name / first name** in all identity forms.
+- **`lastName` and `firstName` are read-only** on the personal tab (not editable by
+  the user themselves; only admins can change them via the admin panel).
+- **Address fields use `UTextarea`** (not `UInput`) to allow multi-line postal addresses.
+- **Country fields use `ToolsCountrySelect`** (not a raw text input). The component
+  returns an ISO-2 code.
+- **Timezone fields use `ToolsTimezoneSelect`**. The v-model value is an abbreviation
+  (`CET`, `EST`, `UTC`…), not an IANA name.
+- **Phone number on billing tab uses `ToolsPhoneNumberInput`** with the key-based
+  re-init pattern. The component is already a `UButtonGroup` (country selector + input
+  on the same line); no additional layout wrapper needed.
+- **Null-guard every admin-only field** before rendering.
+- **Epoch milliseconds** must be converted to human-readable dates using
+  `Intl.DateTimeFormat` with the user's `language` locale.
+- **i18n**: both `en` and `fr` translations required for every string. Country selector
+  labels live in `i18n/en/countries.json` and `i18n/fr/countries.json`, registered
+  in `nuxt.config.ts` under `fileNames`.
