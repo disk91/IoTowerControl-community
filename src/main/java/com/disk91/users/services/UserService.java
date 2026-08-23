@@ -461,10 +461,17 @@ public class UserService {
         for (User u : users) {
             if ( u.getUserSecret() != null && !u.getUserSecret().isEmpty() ) {
                 log.info("[users][service] User {} privacy data expired, removing user secret", u.getLogin());
-                u.setUserSecret("");
+                u.clearUserSecret();
                 u.setModificationDate(Now.NowUtcMs());
                 userRepository.save(u);
                 userCache.flushUser(u.getLogin());
+                auditIntegration.auditLog(
+                        ModuleCatalog.Modules.USERS,
+                        ActionCatalog.getActionName(ActionCatalog.Actions.PERSONAL_LOCK_ACCESS),
+                        u.getLogin(),
+                        "Personal data access has been locked after access expiration",
+                        new String[]{}
+                );
             }
         }
     }

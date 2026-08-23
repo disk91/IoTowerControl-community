@@ -376,7 +376,7 @@ public class User implements CloneableObject<User> {
      * @return
      */
     protected byte[] getEncryptionKey() throws ITParseException {
-        if ( userSecret == null || userSecret.length() < 32 ) throw new ITParseException("User secret not set - sz("+(userSecret==null?"0":userSecret.length())+")!");
+        if ( userSecret == null || userSecret.length() < 32 ) throw new ITParseException("users-user-secret-not-set-sz-"+(userSecret==null?"0":userSecret.length()));
         byte[] serverKey = HexCodingTools.getByteArrayFromHexString(this.serverKey);
         byte[] applicationKey = HexCodingTools.getByteArrayFromHexString(this.applicationKey);
         byte[] userKey = HexCodingTools.getByteArrayFromHexString(this.userSecret);

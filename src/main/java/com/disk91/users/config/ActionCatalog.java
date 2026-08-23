@@ -21,6 +21,7 @@ public class ActionCatalog {
         APIKEY_DELETION,
         APIKEY_RENEWAL,
         PERSONAL_DATA_ACCESS,
+        PERSONAL_LOCK_ACCESS,       // the personal data access has been locked (secret reset)
 
         UNKNOWN
     }
