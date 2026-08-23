@@ -208,16 +208,19 @@ public class UserDetailedProfileResponse {
 
             if ( isRequesterAdmin ) {
                 r.setRegistrationIp(u.getEncRegistrationIP());
-                r.setPasswordExpired((u.getPasswordResetExp() < Now.NowUtcMs()));
+                r.setPasswordExpired((u.getPasswordResetExp() != 0 && u.getPasswordResetExp() < Now.NowUtcMs()));
                 r.setActive(u.isActive());
                 r.setLocked(u.isLocked());
                 r.setConditionValidation(u.isConditionValidation());
                 r.setConditionValidationDate(u.getConditionValidationDate());
                 r.setConditionValidationVersion(u.getConditionValidationVer());
                 r.setApiKeys(new ArrayList<>());
-                for ( UserApiKeys k : u.getApiKeys() ) {
-                    UserApiKeys key = k.clone();
-                    key.setSecret(null);
+                if ( u.getApiKeys() != null ) {
+                    for (UserApiKeys k : u.getApiKeys()) {
+                        UserApiKeys key = k.clone();
+                        key.setSecret(null);
+                        r.getApiKeys().add(key);
+                    }
                 }
             } else {
                 r.setRegistrationIp(null);
