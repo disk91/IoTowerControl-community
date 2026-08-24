@@ -225,7 +225,6 @@ public class UserRegistrationService {
     @Scheduled(fixedRate = 60000)
     void processExpiredRegistrations() {
         // remove all the expired registrations
-        long now = Now.NowUtcMs();
         userRegistrationRepository.deleteByExpirationDateLowerThan(Now.NowUtcMs());
     }
 

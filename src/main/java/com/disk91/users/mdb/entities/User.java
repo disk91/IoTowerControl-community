@@ -660,20 +660,24 @@ public class User implements CloneableObject<User> {
     }
 
     /**
-     * Encode the email for search purpose, we use the 3 first letters of the email and the 3 first letters of the domain
+     * Encode  string for search purpose, we use the 3 first letters of the words or email elements
      * as key that will be hashed and substring for search purpose.
-     * @param email
+     * @param searchString
      * @return
      * @throws ITParseException
      */
-    public static ArrayList<String> encodeSearch(String email) throws ITParseException {
-        String[] parts = email.split("@");
+    public static ArrayList<String> encodeSearch(String searchString) throws ITParseException {
         ArrayList<String> ret = new ArrayList<>();
-        String localPart = parts[0].substring(0, Math.min(parts[0].length(), 3));
-        ret.add(encodeLogin(localPart).substring(0,8));
-        if ( parts.length >= 2 ) {
-            String domainPart = parts[1].substring(0, Math.min(parts[1].length(), 3));
-            ret.add(encodeLogin(domainPart).substring(0,8));
+        if (searchString != null && !searchString.isBlank()) {
+            String[] parts = searchString.trim().split("[@\\s,]+");
+            for (String part : parts) {
+                if (part == null || part.isBlank()) {
+                    continue;
+                }
+                String token = part.trim();
+                String localPart = token.substring(0, Math.min(token.length(), 3));
+                ret.add(encodeLogin(localPart).substring(0, 8));
+            }
         }
         return ret;
     }
@@ -688,22 +692,37 @@ public class User implements CloneableObject<User> {
     }
 
     /**
-     * Set the userSearch of the user, this is used to search for a user based on its login (email)
-     * We use a Hash of the 3 first letters of the email and a hash of 3 first letters of the domain
+     * Set the userSearch of the user, this is used to search for a user based on its login (email), first and last name
+     * We use a Hash of the 3 first letters of the email and a hash of 3 first letters of the domain, 3 first letters of the first & last name
      * to avoid storing the login in clear text. The hash uses the same salt as login. We only keep the 8 first letters
      * of the 2 hashes.
-     * @param login
+     * **Keys must be set**
      * @throws ITParseException
      */
-    public void setEncLoginSearch(String login) throws ITParseException {
+    public void setEncKeySearch() throws ITParseException {
         try {
-            String[] parts = login.split("@");
+            this.userSearch = new ArrayList<>();
+
+            // process email
+            String[] parts = this.getEncEmail().split("@");
             if ( parts.length != 2 ) throw new ITParseException("user-login-is-not-an-email");
             String localPart = parts[0].substring(0, Math.min(parts[0].length(), 3));
             String domainPart = parts[1].substring(0, Math.min(parts[1].length(), 3));
-            this.userSearch = new ArrayList<>();
             this.userSearch.add(encodeLogin(localPart).substring(0,8));
             this.userSearch.add(encodeLogin(domainPart).substring(0,8));
+
+            // process first name when exists
+            if ( this.profile != null && this.profile.getFirstName() != null && !this.getEncProfileFirstName().isEmpty() ) {
+                String firstNamePart = this.getEncProfileFirstName().substring(0, Math.min(this.getEncProfileFirstName().length(), 3));
+                this.userSearch.add(encodeLogin(firstNamePart).substring(0,8));
+            }
+
+            // process last name when exists
+            if ( this.profile != null && this.profile.getLastName() != null && !this.getEncProfileLastName().isEmpty() ) {
+                String lastNamePart = this.getEncProfileLastName().substring(0, Math.min(this.getEncProfileLastName().length(), 3));
+                this.userSearch.add(encodeLogin(lastNamePart).substring(0,8));
+            }
+
         } catch (ITParseException e) {
             throw new ITParseException("user-login-hashing-issue");
         }

@@ -228,6 +228,7 @@ public class UserProfileService {
             try {
                 _user.setKeys(commonConfig.getEncryptionKey(), commonConfig.getApplicationKey());
                 boolean changed = false;
+                boolean keyChanged = false;
                 if ( Tools.areStringsDifferent(user.getLanguage(), _user.getLanguage()) ) {
                     _user.setLanguage(user.getLanguage());
                     changed = true;
@@ -236,10 +237,12 @@ public class UserProfileService {
                 if ( Tools.areStringsDifferent(user.getProfile().getFirstName(), _user.getEncProfileFirstName()) ) {
                     _user.setEncProfileFirstName(user.getProfile().getFirstName());
                     changed = true;
+                    keyChanged = true;
                 }
                 if ( Tools.areStringsDifferent(user.getProfile().getLastName(), _user.getEncProfileLastName()) ) {
                     _user.setEncProfileLastName(user.getProfile().getLastName());
                     changed = true;
+                    keyChanged = true;
                 }
                 if ( Tools.areStringsDifferent(user.getProfile().getGender(), _user.getEncProfileGender()) ) {
                     _user.setEncProfileGender(user.getProfile().getGender());
@@ -362,6 +365,11 @@ public class UserProfileService {
                         (_requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN))
                 ) ) {
                     changed = true;
+                }
+
+                if ( keyChanged ) {
+                    // if the keys have changed, we need to recompute the search hash keys
+                    _user.setEncKeySearch();
                 }
 
                 if ( changed ) {
@@ -599,6 +607,7 @@ public class UserProfileService {
             _user.setKeys(commonConfig.getEncryptionKey(), commonConfig.getApplicationKey());
 
             boolean userObjectUpdated = false;
+            boolean keysChanged = false;
 
             if ( body.getLanguage() != null && !body.getLanguage().equals(_user.getLanguage())) {
                 _user.setLanguage(body.getLanguage());
@@ -608,10 +617,12 @@ public class UserProfileService {
             if ( body.getFirstName() != null && !body.getFirstName().equals(_user.getEncProfileFirstName())) {
                 _user.setEncProfileFirstName(body.getFirstName());
                 userObjectUpdated = true;
+                keysChanged = true;
             }
             if ( body.getLastName() != null && !body.getLastName().equals(_user.getEncProfileLastName())) {
                 _user.setEncProfileLastName(body.getLastName());
                 userObjectUpdated = true;
+                keysChanged = true;
             }
             if ( body.getMobileNumber() != null && !body.getMobileNumber().equals(_user.getEncProfilePhone())) {
                 _user.setEncProfilePhone(body.getMobileNumber());
@@ -632,6 +643,12 @@ public class UserProfileService {
                     log.warn("[users] Custom field {} generate a parsing error for user {}", cf.getName(), _user.getLogin());
                 }
             }
+
+            if ( keysChanged ) {
+                // if the keys have changed, we need to recompute the search hash keys
+                _user.setEncKeySearch();
+            }
+
             _user.cleanKeys();
             // commit the user modification
             if ( userObjectUpdated ) {

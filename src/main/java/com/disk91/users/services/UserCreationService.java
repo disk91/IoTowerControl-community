@@ -160,7 +160,6 @@ public class UserCreationService {
         u = new User();
         u.setKeys(commonConfig.getEncryptionKey(), commonConfig.getApplicationKey());
         u.setEncLogin(body.getEmail());
-        u.setEncLoginSearch(body.getEmail());
         u.changePassword(body.getEmail(),_password,true);
         u.setCountLogin(0);
         u.setRegistrationDate(now);
@@ -223,6 +222,7 @@ public class UserCreationService {
         u.setTwoFAType(TwoFATypes.NONE);
         u.setEncTwoFASecret("");
         u.setCustomFields(new ArrayList<>());
+        u.setEncKeySearch();
 
         u.addRole(UsersRolesCache.StandardRoles.ROLE_PENDING_USER);
 

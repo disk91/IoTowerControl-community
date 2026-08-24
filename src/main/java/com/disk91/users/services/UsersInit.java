@@ -127,7 +127,7 @@ public class UsersInit {
                             if ( u.getUserSearch() == null ) {
                                 u.setKeys(commonConfig.getEncryptionKey(), commonConfig.getApplicationKey());
                                 try {
-                                    u.setEncLoginSearch(u.getEncEmail());
+                                    u.setEncKeySearch();
                                 } catch ( ITParseException x ) {
                                     // skip, the user email is not accessible
                                     return false;
@@ -152,6 +152,32 @@ public class UsersInit {
                     log.error("[users] [migration] [Mongo] Database schema version is unknown, something is wrong !");
                     break;
             }
+        }
+        // force user search keys recalculation (enable it by changing the parameter in the database to 1)
+        p = paramRepository.findByParamKey("users.search.key.refresh");
+        if ( p == null ) {
+            p = new Param();
+            p.setParamKey("users.search.key.refresh");
+            p.setLongValue(0);
+            paramRepository.save(p);
+        }
+        if ( p.getLongValue() == 1 ) {
+            log.info("[users] [searchKey] Rekeying all users search keys");
+            processAllUsers(u->{
+                u.setKeys(commonConfig.getEncryptionKey(), commonConfig.getApplicationKey());
+                try {
+                    u.setEncKeySearch();
+                } catch ( ITParseException x ) {
+                    // skip, the user email is not accessible
+                    return false;
+                } finally {
+                    u.cleanKeys();
+                }
+                return true;
+            });
+            p.setLongValue(0);
+            paramRepository.save(p);
+            log.info("[users] [searchKey] Rekeying done");
         }
 
         // Init the integration actions
@@ -219,7 +245,7 @@ public class UsersInit {
             }
             proceeded += users.size();
         } while (users.size() == batchSize);
-        log.info("[users] [migration] [Mongo] Processed {} Users, skipped {}", proceeded, skipped);
+        log.info("[users] [migration/rekey] [Mongo] Processed {} Users, skipped {}", proceeded, skipped);
     }
 
 }

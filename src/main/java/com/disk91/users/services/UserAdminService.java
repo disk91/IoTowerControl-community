@@ -161,7 +161,7 @@ public class UserAdminService {
      * @return
      * @throws ITNotFoundException
      */
-    public List<UserListElementResponse> searchLastConnectecUsers(
+    public List<UserListElementResponse> searchLastConnectedUsers(
             String requester,
             HttpServletRequest req
     ){

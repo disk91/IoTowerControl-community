@@ -190,7 +190,7 @@ public class UserService {
                 u.restoreUserSecret(body.getPassword());
                 // in case the search key was not set, set it now
                 if ( u.getUserSearch() == null || u.getUserSearch().isEmpty() ) {
-                    u.setEncLoginSearch(body.getEmail());
+                    u.setEncKeySearch();
                 }
                 u.setModificationDate(Now.NowUtcMs());
                 // add a trace of this action in the Audit Log

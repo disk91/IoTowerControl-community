@@ -171,7 +171,7 @@ public class ApiUsersAdmin {
     public ResponseEntity<?> getUserSearch(
             HttpServletRequest request
     ) {
-        List<UserListElementResponse> r = userAdminService.searchLastConnectecUsers(
+        List<UserListElementResponse> r = userAdminService.searchLastConnectedUsers(
                 request.getUserPrincipal().getName(),
                 request
         );

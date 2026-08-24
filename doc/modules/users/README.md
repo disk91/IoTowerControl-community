@@ -280,10 +280,16 @@ data can be decrypted again. As the password is never stored, the `userSecret` c
 ### Search user in encryption context
 
 Due to the encryption of personal data, it is not possible to perform searches on fields such as email. 
-However, to allow minimal searching, the first three letters of the email are stored in a field as a hash 
-that is not linked to the user's key. This approach allows searching based on this hash, which meets part 
-of the need. Searches on other fields are possible but require a full scan of the database, which is not 
+However, to allow minimal searching, the first three letters of the email, firstname and lastname are stored 
+in a field as a hash that is not linked to the user's key. This approach allows searching based on this hash, 
+which meets part of the need. Searches on other fields are possible but require a full scan of the database, which is not 
 recommended and is limited to users whose key remains active.
+
+Hashes are updated when the user modifies their first name or last name, since the email address cannot be changed.
+
+If necessary, it is possible to request a refresh of all search hashes by updating the database parameter 
+`users.search.key.refresh` and setting it to `1`. On the next backend restart, this will trigger a rehash of all keys 
+for users whose personal data is accessible.
 
 ## Super Administrator
 
