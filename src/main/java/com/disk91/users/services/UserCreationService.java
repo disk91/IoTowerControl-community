@@ -211,7 +211,7 @@ public class UserCreationService {
         u.setEncBillingCompanyName("");
         u.setEncBillingVatNumber("");
         u.setEncBillingCountryCode("");
-        u.setLastLogin(0);
+        u.setLastLogin(now);
         u.setPasswordResetId("");
         u.setPasswordResetExp(0);
         u.setLanguage("");
