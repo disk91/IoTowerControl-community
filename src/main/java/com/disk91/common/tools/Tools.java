@@ -42,7 +42,21 @@ public class Tools {
     public static final String ANSI_BLUE = "\u001B[34m";
     public static final String ANSI_RESET  = "\u001B[0m";
 
+    public static String inRed(String str) {
+        return ANSI_RED + str + ANSI_RESET;
+    }
 
+    public static String inGreen(String str) {
+        return ANSI_GREEN + str + ANSI_RESET;
+    }
+
+    public static String inBlue(String str) {
+        return ANSI_BLUE + str + ANSI_RESET;
+    }
+
+    public static String inYellow(String str) {
+        return ANSI_YELLOW + str + ANSI_RESET;
+    }
 
     /**
      * Check if the given email has a valid syntax
@@ -50,7 +64,7 @@ public class Tools {
      * @return true if the email has a valid syntax
      */
     public static boolean isValidEmailSyntax(String email) {
-        return email.matches("^(?=.{1,64}@)[A-Za-z0-9_+-]+(\\.[A-Za-z0-9_-]+)*@"
+        return email.matches("^(?=.{1,64}@)[A-Za-z0-9_+-]+(\\.[A-Za-z0-9_+-]+)*@"
                 + "[^-][A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})$");
     }
 
