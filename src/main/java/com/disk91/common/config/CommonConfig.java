@@ -274,4 +274,31 @@ public class CommonConfig {
         return llmRagSimilarityThreshold;
     }
 
+    // ----------------------------------------------
+    // ShortMessages drivers
+    // ----------------------------------------------
+    @Value("${common.shortmessages.driver:com.disk91.common.tools.drivers.DummyShortMessagesDriver}")
+    protected String shortMessagesDriver;
+    public String getShortMessagesDriver() {
+        return shortMessagesDriver;
+    }
+
+    @Value("${common.shortmessages.esendex.email:}")
+    protected String shortMessagesEsendexEmail;
+    public String getShortMessagesEsendexEmail() {
+        return shortMessagesEsendexEmail;
+    }
+
+    @Value("${common.shortmessages.esendex.password:}")
+    protected String shortMessagesEsendexPassword;
+    public String getShortMessagesEsendexPassword() {
+        return shortMessagesEsendexPassword;
+    }
+
+    @Value("${common.shortmessages.esendex.account:}")
+    protected String shortMessagesEsendexAccount;
+    public String getShortMessagesEsendexAccount() {
+        return shortMessagesEsendexAccount;
+    }
+
 }
