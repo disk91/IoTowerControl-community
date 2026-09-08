@@ -30,6 +30,7 @@ import com.disk91.audit.integration.AuditIntegration;
 import com.disk91.common.config.CommonConfig;
 import com.disk91.common.config.ModuleCatalog;
 import com.disk91.common.tools.*;
+import com.disk91.common.tools.drivers.ShortMessageResponse;
 import com.disk91.common.tools.exceptions.ITNotFoundException;
 import com.disk91.common.tools.exceptions.ITParseException;
 import com.disk91.devices.services.DeviceCache;
@@ -61,6 +62,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -103,6 +105,9 @@ public class AlertService {
 
     @Autowired
     protected EmailTools emailTools;
+
+    @Autowired
+    protected ShortMessagesTools shortMessagesTools;
 
     @Autowired
     protected FirebaseTools firebaseTools;
@@ -572,10 +577,28 @@ public class AlertService {
                             alertRepository.save(alert);
                         }
                         case SMS -> {
-                            // @TODO
-                            alert.upsertSent(target.login(), selectedMedium, false, false, "SMS Not yet implemented");
+                            if ( target.phoneNumber() == null ) {
+                                alert.upsertSent(target.login(), selectedMedium, false, false, "alerts-failed-no-phone-number");
+                            } else {
+                                try {
+                                    ShortMessageResponse smsResult = shortMessagesTools.send(
+                                            target.phoneNumber(),
+                                            renderedMessage,
+                                            (alertsConfig.getAlertsSmsSender().isEmpty()) ? null : alertsConfig.getAlertsSmsSender()
+                                    ).get();
+                                    if ( smsResult == ShortMessageResponse.SMS_SENT_OK) {
+                                        alert.upsertSent(target.login(), selectedMedium, true, false, "");
+                                    } else {
+                                        alert.upsertSent(target.login(), selectedMedium, false, false, "alerts-failed-send-sms-"+smsResult.name());
+                                    }
+                                } catch (InterruptedException e) {
+                                    Thread.currentThread().interrupt();
+                                    alert.upsertSent(target.login(), selectedMedium, false, false, "alerts-failed-send-sms-interrupted");
+                                } catch (ExecutionException e) {
+                                    alert.upsertSent(target.login(), selectedMedium, false, false, "alerts-failed-send-sms-execution");
+                                }
+                            }
                             alertRepository.save(alert);
-                            log.warn("[alerts] SMS not yet implemented");
                         }
                         case PUSH -> {
                             try {
