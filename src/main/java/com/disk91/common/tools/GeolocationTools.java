@@ -35,7 +35,7 @@ public class GeolocationTools {
     }
 
     /**
-     * Calculate the distance between two points in latitude and longitude taking into account height difference.
+     * Calculate the distance in meters between two points in latitude and longitude taking into account height difference.
      * If you are not interested in height difference pass 0.0. Uses Haversine method as its base.
      *
      * @param lat1 latitude of the first point
