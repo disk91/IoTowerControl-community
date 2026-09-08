@@ -28,6 +28,8 @@ import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.Notification;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,6 +38,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.function.Supplier;
 
 @Component
 public class FirebaseTools {
@@ -69,10 +72,12 @@ public class FirebaseTools {
             } else {
                 log.error("[common] Firebase is enabled but service account path is not set. Firebase will not be initialized.");
             }
+            this.initPushToolsMetrics();
         }
     }
 
     public void sendPush(String deviceToken, String title, String body) throws ITParseException {
+        this.incTotalPush();
         if (firebaseServiceInitialized) {
             Message message = Message.builder()
                     .setNotification(Notification.builder()
@@ -84,13 +89,62 @@ public class FirebaseTools {
             try {
                 String response = FirebaseMessaging.getInstance().send(message);
                 log.debug("[common] Firebase push notification sent: {}", response);
+                this.incTotalPushSuccess();
             } catch (FirebaseMessagingException e) {
+                this.incTotalPushFailure();
                 log.error("[common] Failed to send push notification to {}: {}", deviceToken, e.getMessage());
                 throw new ITParseException("common-firebase-push-notification-failed");
             }
         } else {
+            this.incTotalPushFailure();
             log.warn("[common] Firebase service is not initialized. Cannot send push notification.");
         }
     }
+
+
+    // ================================================================================================================
+    // Register Prometheus gauges for email tools metrics at startup.
+    // ================================================================================================================
+
+    @Autowired
+    protected MeterRegistry meterRegistry;
+
+    private volatile long statTotalPush = 0;
+    protected synchronized void incTotalPush() {
+        statTotalPush++;
+    }
+    protected Supplier<Number> getTotalPush() {
+        return ()->statTotalPush;
+    }
+
+    private volatile long statTotalPushSuccess = 0;
+    protected  synchronized void incTotalPushSuccess() {
+        statTotalPushSuccess++;
+    }
+    protected Supplier<Number> getTotalPushSuccess() {
+        return ()->statTotalPushSuccess;
+    }
+
+    private volatile long statTotalPushFailure = 0;
+    protected synchronized void incTotalPushFailure() {
+        statTotalPushFailure++;
+    }
+    protected Supplier<Number> getTotalPushFailure() {
+        return ()->statTotalPushFailure;
+    }
+
+    private void initPushToolsMetrics() {
+        log.info("[common] Firebase push tools metrics initialized");
+        Gauge.builder("common_push_tools_total_sent", this.getTotalPush())
+                .description("Total number of push sent request")
+                .register(meterRegistry);
+        Gauge.builder("common_push_tools_total_sent_success", this.getTotalPushSuccess())
+                .description("Total number of push sent successfully")
+                .register(meterRegistry);
+        Gauge.builder("common_push_tools_total_sent_failure", this.getTotalPushFailure())
+                .description("Total number of push sent failure")
+                .register(meterRegistry);
+    }
+
 
 }

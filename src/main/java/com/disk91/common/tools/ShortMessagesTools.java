@@ -20,11 +20,11 @@
 
 package com.disk91.common.tools;
 
-import com.disk91.capture.interfaces.AbstractProcessor;
-import com.disk91.capture.interfaces.CaptureDataPivot;
 import com.disk91.common.config.CommonConfig;
 import com.disk91.common.tools.drivers.AbstractShortMessagesDriver;
 import com.disk91.common.tools.drivers.ShortMessageResponse;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +34,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 @Component
 public class ShortMessagesTools {
@@ -51,6 +52,7 @@ public class ShortMessagesTools {
     @PostConstruct
     public void init() {
         log.info("[common] ShortMessagesTools init");
+        this.initShorMessageToolsMetrics();
         try {
             String driverClassName = commonConfig.getShortMessagesDriver();
             if ( driverClassName == null || driverClassName.isEmpty()) {
@@ -75,13 +77,16 @@ public class ShortMessagesTools {
 
 
     public ShortMessageResponse sendSync(String to, String text, String from) {
+        this.incTotalSms();
 
         if (driver == null) {
+            this.incTotalSmsFailure();
             return ShortMessageResponse.SMS_DRIVER_NOT_READY;
         }
 
         // Check if the phone number is valid
         if (!to.matches("\\+?[1-9]\\d{1,14}")) {
+            this.incTotalSmsFailure();
             return ShortMessageResponse.SMS_SENT_KO_BAD_NUMBER;
         }
 
@@ -93,6 +98,7 @@ public class ShortMessagesTools {
                     .invoke(driver);
 
             if ( r != ShortMessageResponse.SMS_CONNECT_OK) {
+                this.incTotalSmsFailure();
                 return ShortMessageResponse.SMS_CONNECT_KO;
             }
 
@@ -100,9 +106,11 @@ public class ShortMessagesTools {
                     .getMethod("sendShortMessage", String.class, String.class, String.class)
                     .invoke(driver, to, text, from);
 
+            this.incTotalSmsSuccess();
             return r;
         } catch (Exception e) {
             log.error("[common] Failed to send short message ({})", e.getMessage());
+            this.incTotalSmsFailure();
             return ShortMessageResponse.SMS_SENT_KO;
         }
     }
@@ -122,5 +130,48 @@ public class ShortMessagesTools {
         }
     }
 
+    // ================================================================================================================
+    // Register Prometheus gauges for email tools metrics at startup.
+    // ================================================================================================================
+
+    @Autowired
+    protected MeterRegistry meterRegistry;
+
+    private volatile long statTotalSms = 0;
+    protected synchronized void incTotalSms() {
+        statTotalSms++;
+    }
+    protected Supplier<Number> getTotalSms() {
+        return ()->statTotalSms;
+    }
+
+    private volatile long statTotalSmsSuccess = 0;
+    protected  synchronized void incTotalSmsSuccess() {
+        statTotalSmsSuccess++;
+    }
+    protected Supplier<Number> getTotalSmsSuccess() {
+        return ()->statTotalSmsSuccess;
+    }
+
+    private volatile long statTotalSmsFailure = 0;
+    protected synchronized void incTotalSmsFailure() {
+        statTotalSmsFailure++;
+    }
+    protected Supplier<Number> getTotalSmsFailure() {
+        return ()->statTotalSmsFailure;
+    }
+
+    private void initShorMessageToolsMetrics() {
+        log.info("[common] Firebase short messages tools metrics initialized");
+        Gauge.builder("common_sms_tools_total_sent", this.getTotalSms())
+                .description("Total number of sms sent request")
+                .register(meterRegistry);
+        Gauge.builder("common_sms_tools_total_sent_success", this.getTotalSmsSuccess())
+                .description("Total number of sms sent successfully")
+                .register(meterRegistry);
+        Gauge.builder("common_sms_tools_total_sent_failure", this.getTotalSmsFailure())
+                .description("Total number of sms sent failure")
+                .register(meterRegistry);
+    }
 
 }
