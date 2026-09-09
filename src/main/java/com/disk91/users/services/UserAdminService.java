@@ -137,7 +137,12 @@ public class UserAdminService {
         ArrayList<UserListElementResponse> response = new ArrayList<>();
 
         try {
-            List<String> keys = User.encodeSearch(body.getSearch());
+            List<String> keys = User.encodeSearch(body.getSearch().toLowerCase());
+
+            for ( String k : keys ) {
+                log.info(Tools.inGreen("[user-admin] searchUsersByEmail with keys "+ k));
+            }
+
             List<User> users = userRepository.findByUserSearchAll(keys);
             if ( users != null && !users.isEmpty() ) {
                 for ( User u : users ) {

@@ -676,6 +676,7 @@ public class User implements CloneableObject<User> {
                 }
                 String token = part.trim();
                 String localPart = token.substring(0, Math.min(token.length(), 3));
+                System.out.println("encodeSearch: token=" + token + ", localPart=" + localPart);
                 ret.add(encodeLogin(localPart).substring(0, 8));
             }
         }
@@ -706,20 +707,20 @@ public class User implements CloneableObject<User> {
             // process email
             String[] parts = this.getEncEmail().split("@");
             if ( parts.length != 2 ) throw new ITParseException("user-login-is-not-an-email");
-            String localPart = parts[0].substring(0, Math.min(parts[0].length(), 3));
-            String domainPart = parts[1].substring(0, Math.min(parts[1].length(), 3));
+            String localPart = parts[0].substring(0, Math.min(parts[0].length(), 3)).toLowerCase();
+            String domainPart = parts[1].substring(0, Math.min(parts[1].length(), 3)).toLowerCase();
             this.userSearch.add(encodeLogin(localPart).substring(0,8));
             this.userSearch.add(encodeLogin(domainPart).substring(0,8));
 
             // process first name when exists
             if ( this.profile != null && this.profile.getFirstName() != null && !this.getEncProfileFirstName().isEmpty() ) {
-                String firstNamePart = this.getEncProfileFirstName().substring(0, Math.min(this.getEncProfileFirstName().length(), 3));
+                String firstNamePart = this.getEncProfileFirstName().toLowerCase().trim().substring(0, Math.min(this.getEncProfileFirstName().length(), 3));
                 this.userSearch.add(encodeLogin(firstNamePart).substring(0,8));
             }
 
             // process last name when exists
             if ( this.profile != null && this.profile.getLastName() != null && !this.getEncProfileLastName().isEmpty() ) {
-                String lastNamePart = this.getEncProfileLastName().substring(0, Math.min(this.getEncProfileLastName().length(), 3));
+                String lastNamePart = this.getEncProfileLastName().toLowerCase().trim().substring(0, Math.min(this.getEncProfileLastName().length(), 3));
                 this.userSearch.add(encodeLogin(lastNamePart).substring(0,8));
             }
 
