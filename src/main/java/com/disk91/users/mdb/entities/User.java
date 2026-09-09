@@ -701,7 +701,6 @@ public class User implements CloneableObject<User> {
                 }
                 String token = part.trim();
                 String localPart = token.substring(0, Math.min(token.length(), 3));
-                System.out.println("encodeSearch: token=" + token + ", localPart=" + localPart);
                 ret.add(encodeLogin(localPart).substring(0, 8));
             }
         }
