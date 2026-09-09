@@ -320,6 +320,17 @@ public class UserCommon {
         userCache.saveUser(u);
     }
 
+    /**
+     * Delete a user from the database. This method must be called with the utmost caution, as the user is
+     * referenced in several places.
+     *
+     * @param u User to delete
+     */
+    public void deleteUser(User u) {
+        userCache.flushUser(u.getLogin());
+        userRepository.deleteById(u.getId());
+    }
+
     @Autowired
     protected UserRepository userRepository;
 

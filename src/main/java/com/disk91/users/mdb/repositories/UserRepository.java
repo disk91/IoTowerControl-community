@@ -32,7 +32,7 @@ import java.util.List;
 public interface UserRepository extends MongoRepository<User,String> {
     public User findOneUserByLogin(String login);
 
-    @Query(value = "{ 'lastLogin': { $lt: ?0 }, 'userSecret': { $ne: '', $ne: null }, 'apiAccount': { $ne: true } }")
+    @Query(value = "{ 'lastLogin': { $gt: 0, $lt: ?0 }, 'userSecret': { $ne: '', $ne: null }, 'apiAccount': { $ne: true } }")
     public List<User> findExpiratedUsers(long lastLoginLimit);
 
     // Return "the" User with the corresponding password reset id and a expiration date in the future

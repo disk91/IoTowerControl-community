@@ -20,10 +20,7 @@
 
 package com.disk91.users.mdb.entities;
 
-import com.disk91.common.tools.CloneableObject;
-import com.disk91.common.tools.CustomField;
-import com.disk91.common.tools.EncryptionHelper;
-import com.disk91.common.tools.HexCodingTools;
+import com.disk91.common.tools.*;
 import com.disk91.common.tools.exceptions.ITNotFoundException;
 import com.disk91.common.tools.exceptions.ITParseException;
 import com.disk91.groups.mdb.entities.Group;
@@ -482,7 +479,7 @@ public class User implements CloneableObject<User> {
      * @param password - clear text password
      * @param create - true if the password is created for the first time (no rekeying required)
      *
-     * Return true in most of situation but false when the profile has been reset
+     * Return true in most situation but false when the profile has been reset
      */
     public boolean changePassword(String clearEmail, String password, boolean create)
     throws ITParseException
@@ -583,13 +580,41 @@ public class User implements CloneableObject<User> {
                 this.userSecret = HexCodingTools.bytesToHex(passwordHashForEncryption);
 
                 // clear data
-                if ( email != null) {
-                    if ( clearEmail == null) {
-                        log.error("[users] User reset due to expiration, with unknown email !");
+                if ( this.email != null && !this.email.isEmpty() ) {
+                    // the user already has an email, userId is derivative from email so it cant be changed
+                    if ( clearEmail != null && !clearEmail.isEmpty() && !encodeLogin(clearEmail).equals(this.login) ) {
+                        log.error("[users] User reset due to expiration, with email change from {} to {} !", this.getEncEmail(), clearEmail);
+                        throw new ITParseException("user-reset-email-change");
+                    }
+                    if ( clearEmail == null || clearEmail.isEmpty() ) {
+                        log.error("[users] User reset due to expiration, with unknown email for {}",this.getLogin());
                         this.setEncEmail("noreply@foo.bar"); // make sure not empty - until the associated TODO are managed
-                    } else this.setEncEmail(clearEmail);
-                    normalCreation = false;
+                        //throw new ITParseException("user-reset-email-removal");
+                    }
+                    normalCreation = false; // we are in a reset situation, not a normal creation
+                } else {
+                    // email is not set
+                    if ( clearEmail == null ) {
+                        // we don't really know what to do ... not email set and no email provided
+                        throw new ITParseException("user-reset-email-unknown");
+                    }
+                    if ( this.login != null && !this.login.isEmpty() && encodeLogin(clearEmail).equals(this.login) ) {
+                        // email is not set but login is set, and matches
+                        this.setEncEmail(clearEmail);
+                    } else if ( this.login == null || this.login.isEmpty() ) {
+                        // email is not set and login is not set, we can set the email and the login
+                        this.setLogin(encodeLogin(clearEmail)); // we should never be in this situation for real
+                        this.setEncEmail(clearEmail);           // but we can process if in create mode
+                        if (!create) {
+                            log.error(Tools.inRed("[users] User reset without login set for " + this.getLogin()));
+                            throw new ITParseException("user-created-wo-login-incoherence");
+                        }
+                    } else {
+                        // login exists, but it does not match with the provided email
+                        throw new ITParseException("user-reset-email-not-valid");
+                    }
                 }
+
                 if ( this.getRegistrationIP() != null) this.setRegistrationIP(null);
                 this.setCustomFields(new ArrayList<>());
                 this.setPushAddress(null);
