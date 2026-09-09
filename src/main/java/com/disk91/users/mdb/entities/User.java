@@ -1042,8 +1042,13 @@ public class User implements CloneableObject<User> {
 
     public void setEncProfilePhone(String _value)  throws ITParseException {
         if (this.profile == null) throw new ITParseException("Profile not set");
-        this.profile.setPhoneNumber(EncryptionHelper.encrypt(_value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
-        this.profile.setPhoneHash(User.encodeLogin(_value));
+        if ( _value != null && !_value.isEmpty() ) {
+            this.profile.setPhoneNumber(EncryptionHelper.encrypt(_value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
+            this.profile.setPhoneHash(User.encodeLogin(_value));
+        } else {
+            this.profile.setPhoneNumber("");
+            this.profile.setPhoneHash("");
+        }
     }
 
     public void setEncProfileAddress(String _value)  throws ITParseException {
@@ -1190,8 +1195,13 @@ public class User implements CloneableObject<User> {
 
     public void setEncBillingPhone(String _value)  throws ITParseException {
         if (this.billingProfile == null) throw new ITParseException("Profile not set");
-        this.billingProfile.setPhoneNumber(EncryptionHelper.encrypt(_value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
-        this.billingProfile.setPhoneHash(User.encodeLogin(_value));
+        if ( _value != null && !_value.isEmpty() ) {
+            this.billingProfile.setPhoneNumber(EncryptionHelper.encrypt(_value, IV, HexCodingTools.bytesToHex(this.getEncryptionKey())));
+            this.billingProfile.setPhoneHash(User.encodeLogin(_value));
+        } else {
+            this.billingProfile.setPhoneNumber("");
+            this.billingProfile.setPhoneHash("");
+        }
     }
 
     public void setEncBillingAddress(String _value)  throws ITParseException {
