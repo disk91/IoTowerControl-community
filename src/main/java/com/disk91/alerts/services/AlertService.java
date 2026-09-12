@@ -57,11 +57,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.TimeZone;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -500,6 +496,16 @@ public class AlertService {
                     log.debug("[alerts] group {} not found", group);
                 }
             }
+
+            // Remove duplicates: a contact is a duplicate if any of its phoneNumber, pushAddress or email
+            // was already seen in a previously kept contact
+            Set<String> seenValues = new HashSet<>();
+            targets.entrySet().removeIf(entry -> {
+                ContactTarget t = entry.getValue();
+                return (t.phoneNumber() != null && !t.phoneNumber().isEmpty() && !seenValues.add("phone:" + t.phoneNumber())) ||
+                       (t.pushAddress() != null && !t.pushAddress().isEmpty() && !seenValues.add("push:" + t.pushAddress())) ||
+                       (t.email() != null && !t.email().isEmpty() && !seenValues.add("email:" + t.email()));
+            });
 
             // We have the list of Users, and we have it only once.
 
