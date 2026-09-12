@@ -59,5 +59,16 @@ public interface DevicesRepository extends MongoRepository<Device,String> {
     @Query(value = "{ '_id': { $gt: ObjectId(?0) } }")
     List<Device> findByIdGreaterThanOrderByIdAsc(String startId, Pageable pageable);
 
+    /**
+     * Retrieve a list of devices based on a parameter value.
+     * Returns all devices that match this search.
+     * @param type
+     * @param key
+     * @param value
+     * @return
+     */
+    @Query(value = "{ 'attributes': { $elemMatch: { 'type': ?0, 'params.key': ?1, 'params.values' : ?2 } } }")
+    List<Device> findDevicesByAttribute(String type, String key, String value);
+
 
 }

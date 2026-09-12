@@ -117,4 +117,17 @@ public class DeviceService {
         return devices;
     }
 
+
+    /**
+     * Get all the devices for a given attribute type, name and value.
+     * @param attributeType
+     * @param attributeName
+     * @param value
+     * @return
+     */
+    public List<Device> getDevicesByAttribute(String attributeType, String attributeName, String value) {
+        List<Device> devices = devicesRepository.findDevicesByAttribute(attributeType, attributeName, value);
+        return devices;
+    }
+
 }
