@@ -497,8 +497,30 @@ public class AlertService {
                 }
             }
 
-            // Remove duplicates: a contact is a duplicate if any of its phoneNumber, pushAddress or email
-            // was already seen in a previously kept contact
+            // =====================
+            // Filter the contact list to remove duplicates and prioritize real users over contacts
+
+            // First pass: collect all contact values owned by real users (non "ctc_" logins)
+            // so that contacts ("ctc_") sharing a value with a user are removed in priority
+            Set<String> userValues = new HashSet<>();
+            for (ContactTarget t : targets.values()) {
+                if (!t.login().startsWith("ctc_")) {
+                    if (t.phoneNumber() != null && !t.phoneNumber().isEmpty()) userValues.add("phone:" + t.phoneNumber());
+                    if (t.pushAddress() != null && !t.pushAddress().isEmpty()) userValues.add("push:" + t.pushAddress());
+                    if (t.email() != null && !t.email().isEmpty()) userValues.add("email:" + t.email());
+                }
+            }
+
+            // Second pass: remove any contact entry whose value is already covered by a user
+            targets.entrySet().removeIf(entry -> {
+                ContactTarget t = entry.getValue();
+                if (!t.login().startsWith("ctc_")) return false;
+                return (t.phoneNumber() != null && !t.phoneNumber().isEmpty() && userValues.contains("phone:" + t.phoneNumber())) ||
+                       (t.pushAddress() != null && !t.pushAddress().isEmpty() && userValues.contains("push:" + t.pushAddress())) ||
+                       (t.email() != null && !t.email().isEmpty() && userValues.contains("email:" + t.email()));
+            });
+
+            // Third pass: remove remaining duplicates within the same category (user-user or contact-contact)
             Set<String> seenValues = new HashSet<>();
             targets.entrySet().removeIf(entry -> {
                 ContactTarget t = entry.getValue();
@@ -507,6 +529,7 @@ public class AlertService {
                        (t.email() != null && !t.email().isEmpty() && !seenValues.add("email:" + t.email()));
             });
 
+            // =====================
             // We have the list of Users, and we have it only once.
 
             // select open or close message list depending on whether this is a firing or ending event
@@ -806,10 +829,10 @@ public class AlertService {
      * @param alertId         - stable business identifier, already instantiated
      * @param alertDefRef     - source module reference key
      * @param alertTemplateId - shortId of the AlertTemplate to use
-     * @param targetedGroups  - list of group identifiers used as the broadcast perimeter for user fan-out ; use ctc_xxx for individual contact target
+     * @param targetedGroups  - list of group identifiers used as the broadcast perimeter for user fan-out ; use ctc_xxx for individual contact target (sent even if includesGroupContact is false)
      * @param parameters      - positional substitution values ({1}, {2}, ...)
      * @param requestMs       - event detection timestamp (ms since epoch)
-     * @param includesContact - also send alert to related contacts (NCE edition)
+     * @param includesGroupContact - also send alert to related contacts attached to groups (NCE edition)
      * @return the persisted Alert in PENDING_QUEUE state, or null when rejected as a duplicate
      * @throws ITParseException when the referenced template does not exist
      */
@@ -821,7 +844,7 @@ public class AlertService {
             List<String> targetedGroups,
             List<String> parameters,
             long requestMs,
-            boolean includesContact
+            boolean includesGroupContact
     ) throws ITParseException {
 
         AlertTemplate template;
@@ -858,7 +881,7 @@ public class AlertService {
 
         String publicAccessId = RandomString.getRandomString(24);
         // Persist first as PENDING to obtain the MongoDB id, then transition to PENDING_QUEUE
-        Alert alert = Alert.newAlert(alertId, alertDefRef, alertTemplateId, deviceId, targetedGroups, parameters, requestMs, publicAccessId, includesContact);
+        Alert alert = Alert.newAlert(alertId, alertDefRef, alertTemplateId, deviceId, targetedGroups, parameters, requestMs, publicAccessId, includesGroupContact);
         if ( template.getBehavior() == AlertBehavior.FIRE_TO_END) {
             alert.setRetryMs(requestMs+template.getRetryMs());
         }
