@@ -435,7 +435,7 @@ public class AlertService {
             for (String group : alert.getTargetedGroups()) {
                 log.debug("[alerts] targeted group {} found", group);
                 try {
-                    if ( group.startsWith("ctc_") ) {
+                    if ( group.startsWith("ctc_") || group.startsWith("ctu_")) {
                         // specific situation (NCE) where we want to add specific contacts one by one
                         // contact right not verified at this level, so it must be verified upstream
                         if ( crossAlertWrapperService.isNceEnabled() ) {
@@ -503,11 +503,11 @@ log.info(Tools.inBlue("[contact][alert] group user "+ t.login()+" found in group
             // =====================
             // Filter the contact list to remove duplicates and prioritize real users over contacts
 
-            // First pass: collect all contact values owned by real users (non "ctc_" logins)
-            // so that contacts ("ctc_") sharing a value with a user are removed in priority
+            // First pass: collect all contact values owned by real users (non "ctc_" or "ctu_" logins)
+            // so that contacts ("ctc_" or "ctu_") sharing a value with a user are removed in priority
             Set<String> userValues = new HashSet<>();
             for (ContactTarget t : targets.values()) {
-                if (!t.login().startsWith("ctc_")) {
+                if (!t.login().startsWith("ctc_") && !t.login().startsWith("ctu_")) {
                     if (t.phoneNumber() != null && !t.phoneNumber().isEmpty()) userValues.add("phone:" + t.phoneNumber());
                     if (t.pushAddress() != null && !t.pushAddress().isEmpty()) userValues.add("push:" + t.pushAddress());
                     if (t.email() != null && !t.email().isEmpty()) userValues.add("email:" + t.email());
@@ -520,7 +520,7 @@ log.info(Tools.inBlue("[contact][alert] "+ targets.size() + "users in targets"))
             // Second pass: remove any contact entry whose value is already covered by a user
             targets.entrySet().removeIf(entry -> {
                 ContactTarget t = entry.getValue();
-                if (!t.login().startsWith("ctc_")) return false;
+                if (!t.login().startsWith("ctc_") && !t.login().startsWith("ctu_")) return false;
                 return (t.phoneNumber() != null && !t.phoneNumber().isEmpty() && userValues.contains("phone:" + t.phoneNumber())) ||
                        (t.pushAddress() != null && !t.pushAddress().isEmpty() && userValues.contains("push:" + t.pushAddress())) ||
                        (t.email() != null && !t.email().isEmpty() && userValues.contains("email:" + t.email()));

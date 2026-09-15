@@ -333,4 +333,18 @@ Example concept:
 }
 ```
 
+## Alert targets
 
+When an alert is created, it is sent to different targets, which are deduplicated before being sent. These targets are 
+defined in a list of strings corresponding to groups. These groups can be normal groups, virtual groups, or, in the 
+non-Community version, contacts that can be used.
+
+In some cases, a contact can be reassociated with a group, or rather with a user when the `ctu_` prefix is used. 
+Finally, the system retrieves all contacts from the given groups if the `includesGroupContact` option is enabled and 
+if the group allows alerts.
+
+- Groups members
+- Individual (user_)
+- Contacts (ctc_)
+- Contacts mapped to user when possible (ctu_)
+- Groups contacts (when includesGroupContact is true, applied to all given groups including user_)

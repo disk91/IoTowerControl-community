@@ -82,7 +82,7 @@ public class CrossAlertWrapperService {
      * This function retrieves the information for a contact and fills the target structure using the contact
      * ID passed in the group list.
      *
-     * @param contact - contact id starting with "ctc_"
+     * @param contact - contact id starting with "ctc_" or "ctu_"
      * @return
      */
     public ContactTarget getTargetFromContact(String contact) {
@@ -130,102 +130,4 @@ public class CrossAlertWrapperService {
         return null;
     }
 
-    @Service
-    public static class PrivContactWrapperService {
-
-        private final Logger log = LoggerFactory.getLogger(this.getClass());
-
-        @Autowired
-        protected PrivCaptchaService privCaptchaService;
-
-        @Autowired
-        protected UsersConfig usersConfig;
-
-        @Autowired
-        protected PrivContactsService privContactsService;
-
-        @PostConstruct
-        private void initPrivContactWrapperService() {
-            // Make sure the service is initialized
-            log.info("[contacts] [nce] initPrivContactWrapperService");
-        }
-
-        @FunctionalInterface
-        private interface SafeStringSupplier {
-            String get() throws ITParseException;
-        }
-
-        private String safeString(SafeStringSupplier supplier) {
-            try {
-                return supplier.get();
-            } catch (ITParseException x) {
-                return "";
-            }
-        }
-
-
-
-        /**
-         * From a contact ID passed as a parameter, we retrieve the information needed to generate the alert and store it in a contact target record.
-         * This function does not perform any permission checks. Permission validation must be handled upstream.
-         * @param group
-         * @return
-         */
-        public ContactTarget getTargetFromContact(String group) {
-            if ( group.startsWith("ctc_")) {
-                String contactId = group.substring("ctc_".length());
-                try {
-                    PrivContact contact = privContactsService.getOneContact(contactId);
-                    return new ContactTarget(
-                            group,
-                            null,
-                            contact.getLanguage(),
-                            contact.getAlertPreference(),
-                            true,
-                            safeString(contact::getEncFirstName),
-                            safeString(contact::getEncLastName),
-                            safeString(contact::getEncGender),
-                            contact.getTimeZone(),
-                            safeString(contact::getEncEmail),
-                            safeString(contact::getEncPhoneNumber),
-                            safeString(contact::getEncPushAddress)
-                            );
-                } catch (ITNotFoundException x) {
-                    return null;
-                }
-            }
-            return null;
-        }
-
-        /**
-         * Starting from a user group and its group identifier, we retrieve all contacts that reference that group.
-         * These contacts can then be returned as a list of target contacts, ready to be consumed by the alerting system.
-         * @param group - group ID
-         * @return
-         */
-        public List<ContactTarget> getTargetsFromGroup(String group) {
-            List<PrivContact> contacts = privContactsService.getContactsByGroup(group);
-            ArrayList<ContactTarget> targets = new ArrayList<>();
-            if ( contacts != null) {
-                for (PrivContact contact : contacts) {
-                    targets.add(new ContactTarget(
-                            group,
-                            null,
-                            contact.getLanguage(),
-                            contact.getAlertPreference(),
-                            true,
-                            safeString(contact::getEncFirstName),
-                            safeString(contact::getEncLastName),
-                            safeString(contact::getEncGender),
-                            contact.getTimeZone(),
-                            safeString(contact::getEncEmail),
-                            safeString(contact::getEncPhoneNumber),
-                            safeString(contact::getEncPushAddress)
-                    ));
-                }
-            }
-            return targets;
-        }
-
-    }
 }
