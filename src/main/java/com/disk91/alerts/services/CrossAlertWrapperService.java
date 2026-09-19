@@ -93,6 +93,7 @@ public class CrossAlertWrapperService {
                         .invoke(privContactWrapperService, contact);
             } catch (Exception e) {
                 log.error("[alerts] Failed to call getTargetFromContact : {}", e.getMessage());
+e.printStackTrace();
             }
         }
         // default Community Edition behavior : no captcha
