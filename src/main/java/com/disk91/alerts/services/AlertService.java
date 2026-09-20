@@ -460,7 +460,6 @@ public class AlertService {
                             // Add users
                             for (User user : users) {
                                 user.setKeys(commonConfig.getEncryptionKey(), commonConfig.getApplicationKey());
-log.info(Tools.inBlue("[contact][alert] user "+ user.getLogin()+" found in group "+group+" add contact with phone "+safeString(user::getEncProfilePhone)+" to target list"));
 
                                 ContactTarget t = new ContactTarget(
                                         user.getLogin(),
@@ -486,7 +485,6 @@ log.info(Tools.inBlue("[contact][alert] user "+ user.getLogin()+" found in group
                                 List<ContactTarget> ts = crossAlertWrapperService.getTargetsFromGroup(group);
                                 if ( ts != null ) {
                                     for ( ContactTarget t : ts) {
-log.info(Tools.inBlue("[contact][alert] group user "+ t.login()+" found in group "+group+" add contact with phone "+t.phoneNumber()+" to target list"));
                                         targets.put(t.login(), t);
                                     }
                                 }
@@ -511,11 +509,8 @@ log.info(Tools.inBlue("[contact][alert] group user "+ t.login()+" found in group
                     if (t.phoneNumber() != null && !t.phoneNumber().isEmpty()) userValues.add("phone:" + t.phoneNumber());
                     if (t.pushAddress() != null && !t.pushAddress().isEmpty()) userValues.add("push:" + t.pushAddress());
                     if (t.email() != null && !t.email().isEmpty()) userValues.add("email:" + t.email());
-log.info(Tools.inBlue("[contact][alert]add one user "+t.login()));
                 }
             }
-
-log.info(Tools.inBlue("[contact][alert] "+ targets.size() + "users in targets"));
 
             // Second pass: remove any contact entry whose value is already covered by a user
             targets.entrySet().removeIf(entry -> {
@@ -525,7 +520,6 @@ log.info(Tools.inBlue("[contact][alert] "+ targets.size() + "users in targets"))
                        (t.pushAddress() != null && !t.pushAddress().isEmpty() && userValues.contains("push:" + t.pushAddress())) ||
                        (t.email() != null && !t.email().isEmpty() && userValues.contains("email:" + t.email()));
             });
-log.info(Tools.inBlue("[contact][alert] "+ targets.size() + "users in targets (2)"));
 
             // Third pass: remove remaining duplicates within the same category (user-user or contact-contact)
             Set<String> seenValues = new HashSet<>();
@@ -535,8 +529,6 @@ log.info(Tools.inBlue("[contact][alert] "+ targets.size() + "users in targets (2
                        (t.pushAddress() != null && !t.pushAddress().isEmpty() && !seenValues.add("push:" + t.pushAddress())) ||
                        (t.email() != null && !t.email().isEmpty() && !seenValues.add("email:" + t.email()));
             });
-
-log.info(Tools.inBlue("[contact][alert] "+ targets.size() + "users in targets (3)"));
 
             // =====================
             // We have the list of Users, and we have it only once.
