@@ -178,7 +178,7 @@ public class UserProfileService {
                     _user,
                     commonConfig.getEncryptionKey(),
                     commonConfig.getApplicationKey(),
-                    (_requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN))
+                    (_requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_ALL_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN))
             );
 
         } catch (ITNotFoundException x) {
@@ -278,7 +278,7 @@ public class UserProfileService {
                         _user,
                         user.getProfile().getCustomFields(),
                         CustomFieldType.PROFILE,
-                        (_requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN))
+                        (_requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_ALL_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN))
                 ) ) {
                     changed = true;
                 }
@@ -338,7 +338,7 @@ public class UserProfileService {
                         _user,
                         user.getBillingProfile().getCustomFields(),
                         CustomFieldType.BILLING,
-                        (_requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN))
+                        (_requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_ALL_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN))
                 ) ) {
                     changed = true;
                 }
@@ -362,7 +362,7 @@ public class UserProfileService {
                         _user,
                         user.getCustomFields(),
                         CustomFieldType.GLOBAL,
-                        (_requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN))
+                        (_requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_ALL_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN))
                 ) ) {
                     changed = true;
                 }
@@ -395,7 +395,7 @@ public class UserProfileService {
                     _user,
                     commonConfig.getEncryptionKey(),
                     commonConfig.getApplicationKey(),
-                    (_requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN))
+                    (_requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_ALL_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN))
             );
 
         } catch (ITNotFoundException x) {
@@ -1427,6 +1427,7 @@ public class UserProfileService {
         // Only Admin can change roles
         if (   _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN)
             || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN)
+            || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_ALL_USER_ADMIN)
         ) {
             // Admin can only change the role they have
 

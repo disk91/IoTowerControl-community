@@ -109,7 +109,8 @@ Roles are associated to every user and gives user access to particular API endpo
 session token to avoid verifications on every call. As a consequence, the role refresh requires a session refresh.
 
 - `ROLE_GOD_ADMIN`: this role is the super admin role, it does not give specific permissions but influence the other role to give full access on not owned artifacts
-- `ROLE_USER_ADMIN`: this role is the user admin role, it has the right to manage users
+- `ROLE_USER_ADMIN`: this role is the user admin role, it has the right to manage users in shared groups
+- `ROLE_ALL_USER_ADMIN`: this role is the platform user admin role, it can  manage all users 
 - `ROLE_USER_APIKEY`: this role allows to create APIKey for the user itself
 - `ROLE_GROUP_ADMIN`: this role manage the root group creation, configuration
 - `ROLE_GROUP_LADMIN`: this role allows a user to create and configure an owned group and self assign to it

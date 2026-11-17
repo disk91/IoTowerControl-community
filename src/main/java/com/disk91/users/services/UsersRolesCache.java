@@ -57,7 +57,8 @@ public class UsersRolesCache {
     // Platform roles to setup for database init
     private final String [] pfRoles = {
         "{'version':2, 'platform':true, 'name':'ROLE_GOD_ADMIN','description':'role-god-admin-desc', 'enDescription':'super administrator', 'creationBy':'system', 'creationMs':0, 'assignable':false}",
-        "{'version':2, 'platform':true, 'name':'ROLE_USER_ADMIN','description':'role-user-admin-desc', 'enDescription':'user administrator', 'creationBy':'system', 'creationMs':0, 'assignable':true}",
+        "{'version':2, 'platform':true, 'name':'ROLE_USER_ADMIN','description':'role-user-admin-desc', 'enDescription':'owned group user administrator', 'creationBy':'system', 'creationMs':0, 'assignable':true}",
+        "{'version':2, 'platform':true, 'name':'ROLE_ALL_USER_ADMIN','description':'role-all-user-admin-desc', 'enDescription':'all group user administrator', 'creationBy':'system', 'creationMs':0, 'assignable':true}",
         "{'version':2, 'platform':true, 'name':'ROLE_GROUP_ADMIN','description':'role-group-admin-desc', 'enDescription':'group administrator', 'creationBy':'system', 'creationMs':0, 'assignable':true}",
         "{'version':2, 'platform':true, 'name':'ROLE_GROUP_LADMIN','description':'role-group-ladmin-desc', 'enDescription':'local group administrator', 'creationBy':'system', 'creationMs':0, 'assignable':true}",
         "{'version':2, 'platform':true, 'name':'ROLE_DEVICE_ADMIN','description':'role-device-admin-desc', 'enDescription':'device administrator', 'creationBy':'system', 'creationMs':0, 'assignable':true}",
@@ -66,7 +67,7 @@ public class UsersRolesCache {
         "{'version':2, 'platform':true, 'name':'ROLE_DEVICE_CONFIG','description':'role-device-config-desc', 'enDescription':'device configurator', 'creationBy':'system','creationMs':0, 'assignable':true}",
         "{'version':2, 'platform':true, 'name':'ROLE_DEVICE_ALERTING','description':'role-device-alerting-desc', 'enDescription':'device alert receiver', 'creationBy':'system','creationMs':0, 'assignable':true}",
         "{'version':2, 'platform':true, 'name':'ROLE_BACKEND_CAPTURE','description':'role-backend-capture-desc', 'enDescription':'backend capture authorized member', 'creationBy':'system','creationMs':0, 'assignable':true}",
-        "{'version':2, 'platform':true, 'name':'ROLE_GLOBAL_CAPTURE','description':'role-global-capture-desc', 'enDescription':'plaform wide capture authorized, any devices', 'creationBy':'system','creationMs':0, 'assignable':true}",
+        "{'version':2, 'platform':true, 'name':'ROLE_GLOBAL_CAPTURE','description':'role-global-capture-desc', 'enDescription':'platform wide capture authorized, any devices', 'creationBy':'system','creationMs':0, 'assignable':true}",
         "{'version':2, 'platform':true, 'name':'ROLE_PENDING_USER','description':'role-pending-user-desc', 'enDescription':'not yet registered user', 'creationBy':'system', 'creationMs':0, 'assignable':false}",
         "{'version':2, 'platform':true, 'name':'ROLE_REGISTERED_USER','description':'role-registered-user-desc', 'enDescription':'registered user', 'creationBy':'system','creationMs':0, 'assignable':false}",
         "{'version':2, 'platform':true, 'name':'ROLE_LOGIN_1FA','description':'role-login-1fa-desc', 'enDescription':'logged user with 1 factor authentication', 'creationBy':'system','creationMs':0, 'assignable':false}",
@@ -91,6 +92,7 @@ public class UsersRolesCache {
     public enum StandardRoles {
         ROLE_GOD_ADMIN("ROLE_GOD_ADMIN"),
         ROLE_USER_ADMIN("ROLE_USER_ADMIN"),
+        ROLE_ALL_USER_ADMIN("ROLE_ALL_USER_ADMIN"),
         ROLE_GROUP_ADMIN("ROLE_GROUP_ADMIN"),
         ROLE_GROUP_LADMIN("ROLE_GROUP_LADMIN"),
         ROLE_DEVICE_ADMIN("ROLE_DEVICE_ADMIN"),

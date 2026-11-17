@@ -52,7 +52,7 @@ public class UserCommon {
                 if ( writeAccess ) {
                     // self operation no write
                     // at least it needs to be ROLE_USER_ADMIN
-                    if ( __requestor.compareTo(user) == 0 || !k.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) ) return false;
+                    if ( __requestor.compareTo(user) == 0 || !(k.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_ALL_USER_ADMIN) )) return false;
 
                     // We need to check if we have common groups between the apikey and the user to manage
                     try {
@@ -80,7 +80,7 @@ public class UserCommon {
                     // self operation read ok
                     if (  __requestor.compareTo(user) == 0 ) return true;
                     // ROLE_USER_ADMIN requires for the others
-                    if (  !k.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) ) return false;
+                    if (  !( k.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) || k.isInRole(UsersRolesCache.StandardRoles.ROLE_ALL_USER_ADMIN) ) ) return false;
 
                     // We need to check if we have common groups between the apikey and the user to manage
                     try {
@@ -121,6 +121,9 @@ public class UserCommon {
                     if ( _requestor.getLogin().compareTo(user) == 0 ) return true;
                     // God admin always win
                     if ( _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_GOD_ADMIN) ) return true;
+                    // All User admin is ok
+                    if ( _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_ALL_USER_ADMIN) ) return true;
+
                     // For the other, needs to be an admin and have common groups
                     User _user = userCache.getUser(user);
                     if ( _requestor.isInRole(UsersRolesCache.StandardRoles.ROLE_USER_ADMIN) ) {

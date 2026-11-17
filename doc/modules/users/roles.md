@@ -11,6 +11,12 @@ on not owned artifacts.
 ### `ROLE_USER_ADMIN`
 
 This role is the user admin role, it has the right to manage users. 
+ROLE_USER_ADMIN is limited to user sharing the same groups.
+
+### `ROLE_ALL_USER_ADMIN`
+
+This role is the user admin role, it has the right to all manage users.
+
 #### Perimeter: 
 - The `USER_ADMIN` can manage all the users sharing a Group (not ACLs) in common.
 - Only the Roles the `USER_ADMIN` owns 
